@@ -252,7 +252,7 @@
 
     #unsplash-preview {
       width: 360px;
-      height: 240px;
+      height: 280px;
       object-fit: cover;
       opacity: 0;
       filter: blur(14px);
@@ -275,8 +275,6 @@
   <option value="pexels">Pexels</option>
   <option value="lexica">Lexica (AI Gallery)</option>
   <option value="ai">AI (DALL·E)</option>
-  <option value="replicate">Imagen-4 (Replicate)</option>
-
 </select>
 
 
@@ -388,7 +386,7 @@ async function startUnsplashPreview(keyword) {
 
       imgBox.src = images[index];
       imgBox.classList.add("animate");
-    }, 3000);
+    }, 4000);
 
   } catch (e) {
     console.log(e);
@@ -398,16 +396,14 @@ async function startUnsplashPreview(keyword) {
 /* =====================================================
              YOUR ORIGINAL LOGIC BELOW
 ===================================================== */
-const API_BASE = "https://vista-backend-igtj.onrender.com";
-
-
-
+const API_BASE = "https://vista-backend-1-6r3t.onrender.com";
 
 let slideIndex = 0;
 let slideTimer = null;
 
 let currentKeyword = "";
 let currentPage = 1;
+let totalPages = 1;
 
 function setStatus(msg) {
   document.getElementById("status").textContent = msg || "";
@@ -523,6 +519,7 @@ function downloadCurrent() {
      isLexica   ? "lexica_"   :
                   "ai_") + Date.now() + ".jpg";
 
+  // 强制下载第三方图库，AI 图走原生下载
   if (isUnsplash || isPexels || isLexica) {
     forceDownload(url, filename);
   } else {
@@ -535,12 +532,20 @@ function downloadCurrent() {
   }
 }
 
+
 function toggleFullscreen() {
   const gallery = document.getElementById("gallery");
-  if (!document.fullscreenElement) {
-    gallery.requestFullscreen?.();
+  if (!document.fullscreenElement &&
+      !document.webkitFullscreenElement &&
+      !document.msFullscreenElement) {
+
+    if (gallery.requestFullscreen) gallery.requestFullscreen();
+    else if (gallery.webkitRequestFullscreen) gallery.webkitRequestFullscreen();
+    else if (gallery.msRequestFullscreen) gallery.msRequestFullscreen();
   } else {
-    document.exitFullscreen?.();
+    if (document.exitFullscreen) document.exitFullscreen();
+    else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+    else if (document.msExitFullscreen) document.msExitFullscreen();
   }
 }
 
@@ -556,9 +561,9 @@ onModeChange();
 async function searchOrGenerate() {
   stopSlideshow();
 
-  const keyword = document.getElementById("keyword").value.trim();
+  const keywordInput = document.getElementById("keyword");
   const mode = document.getElementById("mode").value;
-  const countInput = document.getElementById("ai-count");
+  const keyword = keywordInput.value.trim();
 
   if (!keyword) {
     setStatus("Please enter a keyword.");
@@ -568,47 +573,8 @@ async function searchOrGenerate() {
   addSpinner();
 
   try {
-    if (mode === "ai") {
-      let count = parseInt(countInput.value, 10);
-      if (isNaN(count) || count < 1) count = 1;
-
-      setStatus("Generating with DALL·E...");
-      showAILoading(keyword);
-
-      const r = await fetch(`${API_BASE}/api/dalle`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt: keyword,
-          size: "1024x1024"
-        })
-      });
-
-      const data = await r.json();
-
-      hideAILoading();
-      removeSpinner();
-
-      if (!data.image) {
-        clearGallery();
-        setStatus("DALL·E failed.");
-        return;
-      }
-
-      const urls = [data.image];
-
-      const g = document.getElementById("gallery");
-      g.innerHTML = "";
-      urls.forEach((u, i) => createImg(u, keyword, i === 0));
-      buildCatalog(urls.length);
-      setStatus("DALL·E image generated.");
-      return;
-    }
-
-    /* ============================================
-       UNSPLASH
-    ============================================ */
     if (mode === "unsplash") {
+
       if (keyword !== currentKeyword) {
         currentKeyword = keyword;
         currentPage = 1;
@@ -618,18 +584,27 @@ async function searchOrGenerate() {
 
       setStatus(`Searching Unsplash... (page ${currentPage})`);
 
-      let r = await fetch(`${API_BASE}/api/unsplash?q=${encodeURIComponent(keyword)}&page=${currentPage}`);
-      let data = await r.json();
+      let r = await fetch(
+        `${API_BASE}/api/unsplash?q=${encodeURIComponent(keyword)}&page=${currentPage}`
+      );
 
-      if (!data.images?.length) {
+      let data = await r.json();
+      totalPages = data.totalPages || 1;
+
+      if (!data.images || !data.images.length) {
         currentPage = 1;
-        r = await fetch(`${API_BASE}/api/unsplash?q=${encodeURIComponent(keyword)}&page=1`);
+        setStatus("Reached the end, wrapping to page 1...");
+        r = await fetch(
+          `${API_BASE}/api/unsplash?q=${encodeURIComponent(keyword)}&page=1`
+        );
         data = await r.json();
       }
 
       removeSpinner();
 
-      if (!data.images?.length) {
+      const results = data.images || [];
+
+      if (!results.length) {
         clearGallery();
         setStatus("No images found.");
         return;
@@ -637,189 +612,127 @@ async function searchOrGenerate() {
 
       const g = document.getElementById("gallery");
       g.innerHTML = "";
-      data.images.forEach((url, i) => createImg(url, keyword, i === 0));
-      buildCatalog(data.images.length);
+      results.forEach((url, i) => createImg(url, keyword, i === 0));
+
+      buildCatalog(results.length);
       setStatus(`Unsplash page ${currentPage} loaded.`);
       return;
     }
+      // ===========================
+// PEXELS
+// ===========================
+if (mode === "pexels") {
+  setStatus("Searching Pexels...");
 
-    /* ============================================
-       PEXELS
-    ============================================ */
-    if (mode === "pexels") {
-      setStatus("Searching Pexels...");
-      const r = await fetch(`${API_BASE}/api/pexels?q=${encodeURIComponent(keyword)}`);
-      const data = await r.json();
+  const r = await fetch(`${API_BASE}/api/pexels?q=${encodeURIComponent(keyword)}`);
+  const data = await r.json();
 
-      removeSpinner();
-
-      if (!data.images?.length) {
-        clearGallery();
-        setStatus("No Pexels results found.");
-        return;
-      }
-
-      const g = document.getElementById("gallery");
-      g.innerHTML = "";
-      data.images.forEach((url, i) => createImg(url, keyword, i === 0));
-      buildCatalog(data.images.length);
-      setStatus(`Pexels loaded ${data.images.length} images.`);
-      return;
-    }
-
-    /* ============================================
-       LEXICA
-    ============================================ */
-    if (mode === "lexica") {
-      setStatus("Searching Lexica...");
-      const r = await fetch(`${API_BASE}/api/lexica?q=${encodeURIComponent(keyword)}`);
-      const data = await r.json();
-
-      removeSpinner();
-
-      if (!data.images?.length) {
-        clearGallery();
-        setStatus("No Lexica results found.");
-        return;
-      }
-
-      const g = document.getElementById("gallery");
-      g.innerHTML = "";
-      data.images.forEach((url, i) => createImg(url, keyword, i === 0));
-      buildCatalog(data.images.length);
-      setStatus(`Lexica loaded ${data.images.length} images.`);
-      return;
-    }
-
-    /* ============================================
-       DALL·E（新版 gpt-image-1）
-    ============================================ */
-    
-/* ============================================
-   IMAGEN-4（REPLICATE）
-============================================ */
-if (mode === "replicate") {
-  setStatus("Generating with Imagen-4...");
-  showAILoading(keyword);
-
-  // Create
-  const create = await fetch(`${API_BASE}/api/replicate`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      prompt: keyword,
-      aspect_ratio: "1:1"
-    })
-  });
-
-  const pred = await create.json();
-
-  if (!pred.id) {
-    hideAILoading();
-    removeSpinner();
-    clearGallery();
-    setStatus("Replicate API error (no id).");
-    return;
-  }
-
-  // Poll
-  let status = pred.status;
-  let output = null;
-
-  while (status !== "succeeded" && status !== "failed" && status !== "canceled") {
-    await new Promise(r => setTimeout(r, 1000));
-
-    const poll = await fetch(`${API_BASE}/api/replicate?id=${pred.id}`);
-    const data = await poll.json();
-
-    status = data.status;
-
-    // 🔥 This is the REAL fix
-    output =
-      data.output?.output ||
-      data.output ||
-      null;
-  }
-
-  hideAILoading();
   removeSpinner();
 
-  if (!output) {
+  if (!data.images || !data.images.length) {
     clearGallery();
-    setStatus("Imagen-4: no output.");
+    setStatus("No Pexels results found.");
     return;
   }
 
-  // Normalize
-  const urls = Array.isArray(output) ? output : [output];
-
-  // Render
   const g = document.getElementById("gallery");
   g.innerHTML = "";
-  urls.forEach((u, i) => createImg(u, keyword, i === 0));
-  buildCatalog(urls.length);
+  data.images.forEach((url, i) => createImg(url, keyword, i === 0));
 
-  setStatus(`Imagen-4 generated ${urls.length} images.`);
+  buildCatalog(data.images.length);
+  setStatus(`Pexels loaded ${data.images.length} images.`);
   return;
 }
 
+  // ===========================
+// LEXICA
+// ===========================
+if (mode === "lexica") {
+  setStatus("Searching Lexica...");
 
-    /* ============================================
-       AI Batch Styles
-    ============================================ */
-    setStatus("Generating AI images...");
-    showAILoading(keyword);
+  const r = await fetch(`${API_BASE}/api/lexica?q=${encodeURIComponent(keyword)}`);
+  const data = await r.json();
 
-    let count = parseInt(countInput.value, 10);
-    if (isNaN(count) || count < 1) count = 1;
+  removeSpinner();
 
-    const stylePool = [
-      "cinematic lighting",
-      "digital art, highly detailed",
-      "watercolor illustration",
-      "isometric style",
-      "neon cyberpunk palette",
-      "studio photography, depth of field",
-      "surreal concept art",
-      "minimalist flat design",
-      "futuristic sci-fi cityscape",
-      "warm sunset color grading"
-    ];
+  if (!data.images || !data.images.length) {
+    clearGallery();
+    setStatus("No Lexica results found.");
+    return;
+  }
 
-    const prompts = Array.from({ length: count }).map(() => {
-      const style = stylePool[Math.floor(Math.random() * stylePool.length)];
-      return `${keyword}, ${style}`;
-    });
+  const g = document.getElementById("gallery");
+  g.innerHTML = "";
+  data.images.forEach((url, i) => createImg(url, keyword, i === 0));
 
-    const r2 = await fetch(`${API_BASE}/api/generate_batch`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        prompts,
-        size: "1024x1024",
-        model: "gpt-image-1"
-      })
-    });
+  buildCatalog(data.images.length);
+  setStatus(`Lexica loaded ${data.images.length} AI images.`);
+  return;
+}
 
-    const data2 = await r2.json();
-    hideAILoading();
-    removeSpinner();
+    /* ==========================
+     AI MODE — 多风格生成
+========================== */
+setStatus("Generating AI images...");
+showAILoading(keyword);
 
-    if (!data2.data?.length) {
-      clearGallery();
-      setStatus("AI batch generation failed.");
-      return;
-    }
+let count = parseInt(document.getElementById("ai-count").value, 10);
+if (isNaN(count) || count < 1) count = 1;
+if (count > 10) count = 10;
 
-    const urls2 = data2.data.map(
-      it => it.url || `data:image/png;base64,${it.b64_json}`
-    );
+/* 你的风格池 */
+const stylePool = [
+  "cinematic lighting",
+  "digital art, highly detailed",
+  "watercolor illustration",
+  "isometric style",
+  "neon cyberpunk palette",
+  "studio photography, depth of field",
+  "surreal concept art",
+  "minimalist flat design",
+  "futuristic sci-fi cityscape",
+  "warm sunset color grading"
+];
 
-    const g = document.getElementById("gallery");
-    g.innerHTML = "";
-    urls2.forEach((u, i) => createImg(u, keyword, i === 0));
-    buildCatalog(urls2.length);
-    setStatus("AI batch generated.");
+/* 🟦 创建 N 个不同 prompt */
+const prompts = Array.from({ length: count }).map(() => {
+  const style = stylePool[Math.floor(Math.random() * stylePool.length)];
+  return `${keyword}, ${style}`;
+});
+
+/* ⬇ 调用新 API */
+const r = await fetch(`${API_BASE}/api/generate_batch`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    prompts,
+    model: "gpt-image-1",
+    size: "1024x1024"
+  })
+});
+
+const data = await r.json();
+removeSpinner();
+hideAILoading();
+
+if (!data.data) {
+  clearGallery();
+  setStatus("AI failed.");
+  return;
+}
+
+/* 提取 URL */
+const urls = data.data.map(
+  it => it.url || `data:image/png;base64,${it.b64_json}`
+);
+
+/* 放入 gallery */
+const g = document.getElementById("gallery");
+g.innerHTML = "";
+urls.forEach((u, i) => createImg(u, keyword, i === 0));
+
+buildCatalog(urls.length);
+setStatus("AI images generated (multi-style mode).");
 
   } catch (err) {
     console.error(err);
@@ -828,9 +741,8 @@ if (mode === "replicate") {
     setStatus("Error: " + err.message);
   }
 }
-
-
 </script>
 
 </body>
 </html>
+
