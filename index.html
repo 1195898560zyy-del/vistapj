@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>VISTA — Image Library + AI</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f5f7fb;
+      color: #333;
+      margin: 0;
+      padding: 24px;
+      text-align: center;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: 32px;
+      letter-spacing: 1px;
+    }
+
+    .bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      align-items: center;
+      margin: 10px auto 18px;
+    }
+
+    input, select, button {
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid #d0d7e2;
+      font-size: 14px;
+      background: #fff;
+      outline: none;
+    }
+
+    input {
+      min-width: 230px;
+    }
+
+    select {
+      min-width: 150px;
+    }
+
+    #ai-count {
+      min-width: 70px;
+      max-width: 80px;
+      text-align: center;
+    }
+
+    button {
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+    }
+
+    button.primary {
+      background-color: #007bff;
+      color: white;
+      border-color: #007bff;
+      box-shadow: 0 4px 10px rgba(0, 123, 255, 0.25);
+    }
+
+    button.primary:hover {
+      background-color: #0056b3;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 14px rgba(0, 123, 255, 0.35);
+    }
+
+    #status {
+      min-height: 22px;
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 8px;
+    }
+
+    #gallery {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 520px;
+      margin: 10px auto 10px;
+      width: 90%;
+      max-width: 1000px;
+      background: white;
+      border: 1px solid #e0e0e0;
+      border-radius: 16px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+    }
+
+    #gallery img {
+      position: absolute;
+      max-width: 92%;
+      max-height: 92%;
+      border-radius: 14px;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.25);
+      opacity: 0;
+      transition: opacity 0.8s ease-in-out;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      object-fit: contain;
+    }
+
+    #gallery img.active {
+      opacity: 1;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid #e2e8f0;
+      border-top: 4px solid #007bff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0); }
+      to   { transform: rotate(360deg); }
+    }
+
+    .catalog-wrapper {
+      max-width: 640px;
+      margin: 10px auto 18px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #e9edf7;
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+      overflow-x: auto;
+    }
+
+    .catalog {
+      display: flex;
+      gap: 6px;
+      padding: 2px;
+      min-width: max-content;
+      justify-content: center;
+    }
+
+    .catalog-btn {
+      min-width: 32px;
+      height: 32px;
+      padding: 0;
+      border-radius: 999px;
+      border: 1px solid #c3cce5;
+      background: white;
+      font-size: 13px;
+      color: #475569;
+    }
+
+    .catalog-btn.active {
+      background: #007bff;
+      border-color: #007bff;
+      color: white;
+      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.3);
+    }
+
+    .ctrls {
+      margin-top: 10px;
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .ctrl-btn {
+      padding: 10px 20px;
+      border-radius: 999px;
+      border: none;
+      font-size: 14px;
+      color: white;
+      background: #2563eb;
+    }
+
+    .ctrl-btn.secondary {
+      background: #64748b;
+    }
+
+    .ctrl-btn.danger {
+      background: #e11d48;
+    }
+    /* Diffusion-style reveal animation */
+@keyframes diffusionReveal {
+  0% {
+    filter: blur(30px) brightness(0.6) contrast(0.8);
+    opacity: 0.2;
+  }
+  40% {
+    filter: blur(18px) brightness(0.8) contrast(0.9);
+    opacity: 0.6;
+  }
+  80% {
+    filter: blur(8px) brightness(1) contrast(1);
+    opacity: 0.95;
+  }
+  100% {
+    filter: blur(0px) brightness(1) contrast(1);
+    opacity: 1;
+  }
+}
+
+#unsplash-preview.animate {
+  animation: diffusionReveal 1.6s ease-out forwards;
+}
+
+    /* =============================
+         AI Loading Overlay
+    ============================== */
+    #ai-loading {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.92);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 30px;
+      z-index: 99999;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.35s ease;
+    }
+
+    #ai-loading.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .sketch {
+      width: 150px;
+      height: 150px;
+      background: url('sketch.svg') no-repeat center;
+      background-size: contain;
+      opacity: 0.8;
+      animation: sketchPulse 1.8s ease-in-out infinite;
+      filter: invert(1);
+    }
+
+    @keyframes sketchPulse {
+      0% { opacity: 0.2; transform: scale(0.9); }
+      50% { opacity: 1; transform: scale(1.05); }
+      100% { opacity: 0.2; transform: scale(0.9); }
+    }
+
+    #unsplash-preview {
+      width: 360px;
+      height: 240px;
+      object-fit: cover;
+      opacity: 0;
+      filter: blur(14px);
+      border-radius: 14px;
+      transition: opacity 1s, filter 1.6s;
+    }
+
+  </style>
+</head>
+
+<body>
+
+  <h1>VISTA — Image Library + AI</h1>
+
+  <div class="bar">
+    <input id="keyword" type="text" placeholder="Enter theme (e.g. dog, future city)" />
+
+    <select id="mode" onchange="onModeChange()">
+  <option value="unsplash" selected>Unsplash</option>
+  <option value="pexels">Pexels</option>
+  <option value="lexica">Lexica (AI Gallery)</option>
+  <option value="ai">AI (DALL·E)</option>
+  <option value="replicate">Imagen-4 (Replicate)</option>
+
+</select>
+
+
+    <input id="ai-count" type="number" min="1" max="10" value="3" />
+
+    <button class="primary" onclick="searchOrGenerate()">Search / Generate</button>
+    <button class="secondary" onclick="testAnimation()">Test Animation</button>
+
+  </div>
+
+  <div id="status"></div>
+
+  <div id="gallery"><p>Try searching or generating!</p></div>
+
+  <div class="catalog-wrapper" id="catalog-wrapper" style="display:none;">
+    <div class="catalog" id="catalog"></div>
+  </div>
+
+  <div class="ctrls">
+    <button class="ctrl-btn" onclick="startSlideshow()">▶ Play</button>
+    <button class="ctrl-btn secondary" onclick="stopSlideshow()">⏹ Stop</button>
+    <button class="ctrl-btn secondary" onclick="toggleFullscreen()">⛶ Fullscreen</button>
+    <button class="ctrl-btn secondary" onclick="downloadCurrent()">⬇ Download</button>
+    <button class="ctrl-btn danger" onclick="clearGallery()">Clear</button>
+  </div>
+
+  <!-- AI Loading Overlay -->
+  <div id="ai-loading">
+    <div class="sketch"></div>
+    <p id="loading-text">Creating your image...</p>
+    <img id="unsplash-preview" />
+  </div>
+  
+
+<script>
+  /* =====================================================
+             FORCE DOWNLOAD (UNSPLASH/PEXELS/LEXICA)
+===================================================== */
+async function forceDownload(url, filename) {
+  try {
+    const res = await fetch(url);
+    const blob = await res.blob();
+
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(a.href);
+  } catch (err) {
+    console.error("Download failed:", err);
+    alert("Failed to download image.");
+  }
+}
+/* =====================================================
+             TEST AI LOADING ANIMATION
+===================================================== */
+function testAnimation() {
+  showAILoading("test");
+}
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    hideAILoading();
+  }
+});
+
+
+/* =====================================================
+             AI LOADING + UNSPLASH PREVIEW
+===================================================== */
+let previewTimer = null;
+
+function showAILoading(keyword) {
+  document.getElementById("ai-loading").classList.add("visible");
+  startUnsplashPreview(keyword);
+}
+
+function hideAILoading() {
+  document.getElementById("ai-loading").classList.remove("visible");
+  clearInterval(previewTimer);
+}
+
+async function startUnsplashPreview(keyword) {
+  const imgBox = document.getElementById("unsplash-preview");
+
+  try {
+    const r = await fetch(
+      `${API_BASE}/api/unsplash?q=${encodeURIComponent(keyword)}&page=1`
+    );
+    const data = await r.json();
+    const images = data.images || [];
+    if (!images.length) return;
+
+    let index = 0;
+
+    // 显示第一张
+    imgBox.classList.remove("animate");
+    void imgBox.offsetWidth;
+    imgBox.src = images[0];
+    imgBox.classList.add("animate");
+
+    // 每 1.5 秒切一张并执行 diffusion reveal
+    previewTimer = setInterval(() => {
+      index = (index + 1) % images.length;
+
+      imgBox.classList.remove("animate");
+      void imgBox.offsetWidth;
+
+      imgBox.src = images[index];
+      imgBox.classList.add("animate");
+    }, 3000);
+
+  } catch (e) {
+    console.log(e);
+  }
+}
+
+/* =====================================================
+             YOUR ORIGINAL LOGIC BELOW
+===================================================== */
+const API_BASE = "https://vista-backend-igtj.onrender.com";
+
+
+
+
+let slideIndex = 0;
+let slideTimer = null;
+
+let currentKeyword = "";
+let currentPage = 1;
+
+function setStatus(msg) {
+  document.getElementById("status").textContent = msg || "";
+}
+
+function clearGallery() {
+  stopSlideshow();
+  document.getElementById("gallery").innerHTML = "<p>Try searching or generating!</p>";
+  document.getElementById("catalog").innerHTML = "";
+  document.getElementById("catalog-wrapper").style.display = "none";
+  setStatus("");
+}
+
+function addSpinner() {
+  const g = document.getElementById("gallery");
+  g.innerHTML = "";
+  const s = document.createElement("div");
+  s.className = "spinner";
+  g.appendChild(s);
+}
+
+function removeSpinner() {
+  const s = document.querySelector("#gallery .spinner");
+  if (s) s.remove();
+}
+
+function createImg(src, alt, active = false) {
+  const img = document.createElement("img");
+  img.src = src;
+  img.alt = alt;
+  if (active) img.classList.add("active");
+  document.getElementById("gallery").appendChild(img);
+}
+
+function getImages() {
+  return document.querySelectorAll("#gallery img");
+}
+
+function updateCatalogActive(i) {
+  const btns = document.querySelectorAll(".catalog-btn");
+  btns.forEach((b, idx) => {
+    b.classList.toggle("active", idx === i);
+  });
+}
+
+function setActive(i) {
+  const imgs = getImages();
+  if (!imgs.length) return;
+  imgs.forEach(im => im.classList.remove("active"));
+  const target = imgs[i % imgs.length];
+  target.classList.add("active");
+  slideIndex = i % imgs.length;
+  updateCatalogActive(slideIndex);
+}
+
+function buildCatalog(count) {
+  const wrap = document.getElementById("catalog-wrapper");
+  const catalog = document.getElementById("catalog");
+  catalog.innerHTML = "";
+
+  if (!count || count <= 1) {
+    wrap.style.display = "none";
+    return;
+  }
+
+  wrap.style.display = "block";
+
+  for (let i = 0; i < count; i++) {
+    const btn = document.createElement("button");
+    btn.className = "catalog-btn";
+    btn.textContent = i + 1;
+    if (i === 0) btn.classList.add("active");
+    btn.addEventListener("click", () => {
+      stopSlideshow();
+      setActive(i);
+    });
+    catalog.appendChild(btn);
+  }
+}
+
+function startSlideshow() {
+  const imgs = getImages();
+  if (!imgs.length) return;
+  stopSlideshow();
+  slideIndex = 0;
+  setActive(0);
+  slideTimer = setInterval(() => {
+    setActive(slideIndex + 1);
+  }, 3000);
+}
+
+function stopSlideshow() {
+  if (slideTimer) {
+    clearInterval(slideTimer);
+    slideTimer = null;
+  }
+}
+
+function downloadCurrent() {
+  const imgs = getImages();
+  if (!imgs.length) return;
+
+  const active = [...imgs].find(i => i.classList.contains("active")) || imgs[0];
+  const url = active.src;
+
+  const isUnsplash = url.includes("images.unsplash.com");
+  const isPexels = url.includes("pexels.com") || url.includes("images.pexels.com");
+  const isLexica = url.includes("lexica");
+
+  const filename =
+    (isUnsplash ? "unsplash_" :
+     isPexels   ? "pexels_"   :
+     isLexica   ? "lexica_"   :
+                  "ai_") + Date.now() + ".jpg";
+
+  if (isUnsplash || isPexels || isLexica) {
+    forceDownload(url, filename);
+  } else {
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+}
+
+function toggleFullscreen() {
+  const gallery = document.getElementById("gallery");
+  if (!document.fullscreenElement) {
+    gallery.requestFullscreen?.();
+  } else {
+    document.exitFullscreen?.();
+  }
+}
+
+function onModeChange() {
+  const mode = document.getElementById("mode").value;
+  const aiCountInput = document.getElementById("ai-count");
+  aiCountInput.disabled = (mode !== "ai");
+  aiCountInput.style.opacity = mode === "ai" ? "1" : "0.5";
+}
+
+onModeChange();
+
+async function searchOrGenerate() {
+  stopSlideshow();
+
+  const keyword = document.getElementById("keyword").value.trim();
+  const mode = document.getElementById("mode").value;
+  const countInput = document.getElementById("ai-count");
+
+  if (!keyword) {
+    setStatus("Please enter a keyword.");
+    return;
+  }
+
+  addSpinner();
+
+  try {
+    if (mode === "ai") {
+      let count = parseInt(countInput.value, 10);
+      if (isNaN(count) || count < 1) count = 1;
+
+      setStatus("Generating with DALL·E...");
+      showAILoading(keyword);
+
+      const r = await fetch(`${API_BASE}/api/dalle`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: keyword,
+          size: "1024x1024"
+        })
+      });
+
+      const data = await r.json();
+
+      hideAILoading();
+      removeSpinner();
+
+      if (!data.image) {
+        clearGallery();
+        setStatus("DALL·E failed.");
+        return;
+      }
+
+      const urls = [data.image];
+
+      const g = document.getElementById("gallery");
+      g.innerHTML = "";
+      urls.forEach((u, i) => createImg(u, keyword, i === 0));
+      buildCatalog(urls.length);
+      setStatus("DALL·E image generated.");
+      return;
+    }
+
+    /* ============================================
+       UNSPLASH
+    ============================================ */
+    if (mode === "unsplash") {
+      if (keyword !== currentKeyword) {
+        currentKeyword = keyword;
+        currentPage = 1;
+      } else {
+        currentPage += 1;
+      }
+
+      setStatus(`Searching Unsplash... (page ${currentPage})`);
+
+      let r = await fetch(`${API_BASE}/api/unsplash?q=${encodeURIComponent(keyword)}&page=${currentPage}`);
+      let data = await r.json();
+
+      if (!data.images?.length) {
+        currentPage = 1;
+        r = await fetch(`${API_BASE}/api/unsplash?q=${encodeURIComponent(keyword)}&page=1`);
+        data = await r.json();
+      }
+
+      removeSpinner();
+
+      if (!data.images?.length) {
+        clearGallery();
+        setStatus("No images found.");
+        return;
+      }
+
+      const g = document.getElementById("gallery");
+      g.innerHTML = "";
+      data.images.forEach((url, i) => createImg(url, keyword, i === 0));
+      buildCatalog(data.images.length);
+      setStatus(`Unsplash page ${currentPage} loaded.`);
+      return;
+    }
+
+    /* ============================================
+       PEXELS
+    ============================================ */
+    if (mode === "pexels") {
+      setStatus("Searching Pexels...");
+      const r = await fetch(`${API_BASE}/api/pexels?q=${encodeURIComponent(keyword)}`);
+      const data = await r.json();
+
+      removeSpinner();
+
+      if (!data.images?.length) {
+        clearGallery();
+        setStatus("No Pexels results found.");
+        return;
+      }
+
+      const g = document.getElementById("gallery");
+      g.innerHTML = "";
+      data.images.forEach((url, i) => createImg(url, keyword, i === 0));
+      buildCatalog(data.images.length);
+      setStatus(`Pexels loaded ${data.images.length} images.`);
+      return;
+    }
+
+    /* ============================================
+       LEXICA
+    ============================================ */
+    if (mode === "lexica") {
+      setStatus("Searching Lexica...");
+      const r = await fetch(`${API_BASE}/api/lexica?q=${encodeURIComponent(keyword)}`);
+      const data = await r.json();
+
+      removeSpinner();
+
+      if (!data.images?.length) {
+        clearGallery();
+        setStatus("No Lexica results found.");
+        return;
+      }
+
+      const g = document.getElementById("gallery");
+      g.innerHTML = "";
+      data.images.forEach((url, i) => createImg(url, keyword, i === 0));
+      buildCatalog(data.images.length);
+      setStatus(`Lexica loaded ${data.images.length} images.`);
+      return;
+    }
+
+    /* ============================================
+       DALL·E（新版 gpt-image-1）
+    ============================================ */
+    
+/* ============================================
+   IMAGEN-4（REPLICATE）
+============================================ */
+if (mode === "replicate") {
+  setStatus("Generating with Imagen-4...");
+  showAILoading(keyword);
+
+  // Create
+  const create = await fetch(`${API_BASE}/api/replicate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      prompt: keyword,
+      aspect_ratio: "1:1"
+    })
+  });
+
+  const pred = await create.json();
+
+  if (!pred.id) {
+    hideAILoading();
+    removeSpinner();
+    clearGallery();
+    setStatus("Replicate API error (no id).");
+    return;
+  }
+
+  // Poll
+  let status = pred.status;
+  let output = null;
+
+  while (status !== "succeeded" && status !== "failed" && status !== "canceled") {
+    await new Promise(r => setTimeout(r, 1000));
+
+    const poll = await fetch(`${API_BASE}/api/replicate?id=${pred.id}`);
+    const data = await poll.json();
+
+    status = data.status;
+
+    // 🔥 This is the REAL fix
+    output =
+      data.output?.output ||
+      data.output ||
+      null;
+  }
+
+  hideAILoading();
+  removeSpinner();
+
+  if (!output) {
+    clearGallery();
+    setStatus("Imagen-4: no output.");
+    return;
+  }
+
+  // Normalize
+  const urls = Array.isArray(output) ? output : [output];
+
+  // Render
+  const g = document.getElementById("gallery");
+  g.innerHTML = "";
+  urls.forEach((u, i) => createImg(u, keyword, i === 0));
+  buildCatalog(urls.length);
+
+  setStatus(`Imagen-4 generated ${urls.length} images.`);
+  return;
+}
+
+
+    /* ============================================
+       AI Batch Styles
+    ============================================ */
+    setStatus("Generating AI images...");
+    showAILoading(keyword);
+
+    let count = parseInt(countInput.value, 10);
+    if (isNaN(count) || count < 1) count = 1;
+
+    const stylePool = [
+      "cinematic lighting",
+      "digital art, highly detailed",
+      "watercolor illustration",
+      "isometric style",
+      "neon cyberpunk palette",
+      "studio photography, depth of field",
+      "surreal concept art",
+      "minimalist flat design",
+      "futuristic sci-fi cityscape",
+      "warm sunset color grading"
+    ];
+
+    const prompts = Array.from({ length: count }).map(() => {
+      const style = stylePool[Math.floor(Math.random() * stylePool.length)];
+      return `${keyword}, ${style}`;
+    });
+
+    const r2 = await fetch(`${API_BASE}/api/generate_batch`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        prompts,
+        size: "1024x1024",
+        model: "gpt-image-1"
+      })
+    });
+
+    const data2 = await r2.json();
+    hideAILoading();
+    removeSpinner();
+
+    if (!data2.data?.length) {
+      clearGallery();
+      setStatus("AI batch generation failed.");
+      return;
+    }
+
+    const urls2 = data2.data.map(
+      it => it.url || `data:image/png;base64,${it.b64_json}`
+    );
+
+    const g = document.getElementById("gallery");
+    g.innerHTML = "";
+    urls2.forEach((u, i) => createImg(u, keyword, i === 0));
+    buildCatalog(urls2.length);
+    setStatus("AI batch generated.");
+
+  } catch (err) {
+    console.error(err);
+    removeSpinner();
+    hideAILoading();
+    setStatus("Error: " + err.message);
+  }
+}
+
+
+</script>
+
+</body>
+</html>
