@@ -746,3 +746,40 @@ setStatus("AI images generated (multi-style mode).");
 </body>
 </html>
 
+<div id="sessionBox"></div>
+
+<script>
+let sessionID = null;
+
+async function initSession() {
+  const res = await fetch("/api/session", { method: "POST" });
+  const data = await res.json();
+  sessionID = data.session;
+
+  document.getElementById("sessionBox").innerHTML = `
+    <p>Control link:</p>
+    <a href="/ctrl/${sessionID}" target="_blank">
+      https://your-site.com/ctrl/${sessionID}
+    </a>
+  `;
+}
+
+initSession();
+
+// Poll every second for commands
+setInterval(async () => {
+  if (!sessionID) return;
+
+  const res = await fetch(`/api/check?session=${sessionID}`);
+  const data = await res.json();
+
+  if (data.command) {
+    console.log("Received:", data.command);
+
+    if (data.command.type === "prompt") {
+      generateImage(data.command.text); // <-- 你已有的函数
+    }
+  }
+}, 1000);
+</script>
+
