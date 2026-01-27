@@ -405,11 +405,7 @@
       }
 
       function applyMode() {
-        const keyword = themeInput.value.trim();
         sendCommand("mode", { mode: modeSelect.value });
-        if (keyword) {
-          sendCommand("refresh");
-        }
         updateAiControls();
       }
 
