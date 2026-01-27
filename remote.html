@@ -418,11 +418,16 @@
       }
 
       function applyMode() {
+        const keyword = themeInput.value.trim();
         sendCommand("mode", { mode: modeSelect.value });
+        if (keyword) {
+          sendCommand("refresh");
+        }
       }
 
       btnApplyTheme.addEventListener("click", applyTheme);
       btnApplyMode.addEventListener("click", applyMode);
+      modeSelect.addEventListener("change", applyMode);
       btnPlay.addEventListener("click", () => sendCommand("play"));
       btnPause.addEventListener("click", () => sendCommand("pause"));
       btnPrev.addEventListener("click", () => sendCommand("prev"));
