@@ -587,6 +587,7 @@ async function startUnsplashPreview(keyword) {
              YOUR ORIGINAL LOGIC BELOW
 ===================================================== */
 const API_BASE = "https://vista-backend-1-6r3t.onrender.com";
+const FRONTEND_BASE = "https://1195898560zyy-del.github.io/vistapj";
 
 let slideIndex = 0;
 let slideTimer = null;
@@ -765,7 +766,7 @@ function restoreHistory(id) {
 }
 
 function buildRemoteUrl(id) {
-  return `${API_BASE}/remote.html?session=${encodeURIComponent(id)}`;
+  return `${FRONTEND_BASE}/remote.html?session=${encodeURIComponent(id)}`;
 }
 
 function updateSessionUI(url, code) {
