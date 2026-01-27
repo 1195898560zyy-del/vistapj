@@ -201,7 +201,7 @@
           <input id="theme-input" type="text" placeholder="future city, climate classroom..." />
         </div>
         <div class="row">
-          <button class="btn" id="apply-theme">Apply Theme</button>
+          <button class="btn" id="apply-theme">Search</button>
         </div>
         <div class="history-chips" id="theme-history"></div>
       </section>
@@ -235,25 +235,14 @@
             <option value="1024x1024" selected>1024x1024</option>
           </select>
         </div>
-        <div class="row">
-          <button class="btn secondary" id="apply-mode">Apply Mode</button>
-        </div>
       </section>
 
       <section class="section">
-        <div class="section-title">Playback</div>
-        <div class="btn-group">
-          <button class="btn" id="play">▶︎ Play</button>
-          <button class="btn secondary" id="pause">⏸ Pause</button>
-          <button class="btn secondary" id="prev">◀︎ Prev</button>
-          <button class="btn secondary" id="next">▶︎ Next</button>
-        </div>
-      </section>
-
-      <section class="section">
-        <div class="section-title">Actions</div>
+        <div class="section-title">Controls</div>
         <div class="btn-grid">
-          <button class="btn" id="refresh">♻︎ Refresh</button>
+          <button class="btn secondary" id="prev">◀︎ Prev</button>
+          <button class="btn" id="play-toggle">▶︎ Play</button>
+          <button class="btn secondary" id="next">▶︎ Next</button>
           <button class="btn" id="generate">✨ Generate</button>
           <button class="btn danger" id="clear">🧹 Clear</button>
         </div>
@@ -280,17 +269,15 @@
       const aiSize = document.getElementById("ai-size");
 
       const btnApplyTheme = document.getElementById("apply-theme");
-      const btnApplyMode = document.getElementById("apply-mode");
-      const btnPlay = document.getElementById("play");
-      const btnPause = document.getElementById("pause");
+      const btnPlayToggle = document.getElementById("play-toggle");
       const btnPrev = document.getElementById("prev");
       const btnNext = document.getElementById("next");
-      const btnRefresh = document.getElementById("refresh");
       const btnGenerate = document.getElementById("generate");
       const btnClear = document.getElementById("clear");
 
       let sessionId = null;
       let cooldownTimer = null;
+      let isPlaying = false;
 
       function setConnection(ok, text) {
         connPill.textContent = text;
@@ -423,16 +410,24 @@
         if (keyword) {
           sendCommand("refresh");
         }
+        updateAiControls();
       }
 
       btnApplyTheme.addEventListener("click", applyTheme);
-      btnApplyMode.addEventListener("click", applyMode);
       modeSelect.addEventListener("change", applyMode);
-      btnPlay.addEventListener("click", () => sendCommand("play"));
-      btnPause.addEventListener("click", () => sendCommand("pause"));
+      btnPlayToggle.addEventListener("click", () => {
+        if (isPlaying) {
+          sendCommand("pause");
+          isPlaying = false;
+          btnPlayToggle.textContent = "▶︎ Play";
+        } else {
+          sendCommand("play");
+          isPlaying = true;
+          btnPlayToggle.textContent = "⏸ Pause";
+        }
+      });
       btnPrev.addEventListener("click", () => sendCommand("prev"));
       btnNext.addEventListener("click", () => sendCommand("next"));
-      btnRefresh.addEventListener("click", () => sendCommand("refresh"));
       btnClear.addEventListener("click", () => {
         if (confirm("Clear the gallery?")) sendCommand("clear");
       });
@@ -451,6 +446,15 @@
         startCooldown();
       });
 
+      function updateAiControls() {
+        const isAiMode = modeSelect.value === "ai" || modeSelect.value === "flux";
+        aiCount.disabled = !isAiMode;
+        aiSize.disabled = !isAiMode;
+        aiCount.style.opacity = isAiMode ? "1" : "0.5";
+        aiSize.style.opacity = isAiMode ? "1" : "0.5";
+        btnGenerate.disabled = !isAiMode;
+      }
+
       function initSession() {
         const params = new URLSearchParams(window.location.search);
         const fromUrl = params.get("session");
@@ -467,6 +471,7 @@
           notice.textContent = "Scan the QR code on the presenter screen.";
         }
         renderThemeHistory();
+        updateAiControls();
       }
 
       initSession();
