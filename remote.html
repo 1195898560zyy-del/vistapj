@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>VISTA Remote</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap");
+
+      :root {
+        --bg-1: #0f172a;
+        --bg-2: #1e293b;
+        --accent: #38bdf8;
+        --accent-2: #22c55e;
+        --card: rgba(255, 255, 255, 0.08);
+        --border: rgba(148, 163, 184, 0.3);
+        --text: #f8fafc;
+        --muted: #cbd5f5;
+        --danger: #f43f5e;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Space Grotesk", "Segoe UI", sans-serif;
+        background: radial-gradient(circle at top, #1e40af 0%, #0f172a 55%, #020617 100%);
+        color: var(--text);
+        min-height: 100vh;
+      }
+
+      .container {
+        max-width: 540px;
+        margin: 0 auto;
+        padding: 20px 16px 32px;
+        display: grid;
+        gap: 16px;
+      }
+
+      .header {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding: 16px;
+        border-radius: 16px;
+        background: var(--card);
+        border: 1px solid var(--border);
+        backdrop-filter: blur(8px);
+      }
+
+      .title {
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: 0.4px;
+      }
+
+      .status {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px 12px;
+        font-size: 14px;
+        color: var(--muted);
+      }
+
+      .pill {
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: rgba(56, 189, 248, 0.18);
+        color: var(--text);
+        font-size: 12px;
+      }
+
+      .section {
+        padding: 16px;
+        border-radius: 16px;
+        background: var(--card);
+        border: 1px solid var(--border);
+        display: grid;
+        gap: 12px;
+      }
+
+      .section-title {
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: var(--muted);
+      }
+
+      .row {
+        display: grid;
+        gap: 10px;
+      }
+
+      label {
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      input,
+      select {
+        width: 100%;
+        padding: 12px 14px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: rgba(15, 23, 42, 0.6);
+        color: var(--text);
+        font-size: 14px;
+      }
+
+      .btn {
+        padding: 12px 14px;
+        border-radius: 14px;
+        border: none;
+        background: var(--accent);
+        color: #0f172a;
+        font-weight: 700;
+        cursor: pointer;
+        transition: transform 0.12s ease, box-shadow 0.2s ease;
+      }
+
+      .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        box-shadow: none;
+      }
+
+      .btn:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: 0 10px 24px rgba(56, 189, 248, 0.35);
+      }
+
+      .btn.secondary {
+        background: rgba(148, 163, 184, 0.2);
+        color: var(--text);
+      }
+
+      .btn.danger {
+        background: var(--danger);
+        color: white;
+      }
+
+      .btn-group {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+      }
+
+      .btn-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+      }
+
+      .history-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .chip {
+        padding: 6px 10px;
+        border-radius: 999px;
+        background: rgba(148, 163, 184, 0.2);
+        font-size: 12px;
+        color: var(--text);
+        border: 1px solid transparent;
+        cursor: pointer;
+      }
+
+      .chip:hover {
+        border-color: var(--accent);
+      }
+
+      .command-status {
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      .notice {
+        font-size: 13px;
+        color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <main class="container">
+      <div class="header">
+        <div class="title">VISTA Remote</div>
+        <div class="status">
+          <span class="pill" id="conn-pill">Connecting...</span>
+          <span>Session: <span id="session-id">—</span></span>
+        </div>
+      </div>
+
+      <section class="section">
+        <div class="section-title">Theme</div>
+        <div class="row">
+          <label for="theme-input">Keyword</label>
+          <input id="theme-input" type="text" placeholder="future city, climate classroom..." />
+        </div>
+        <div class="row">
+          <button class="btn" id="apply-theme">Apply Theme</button>
+        </div>
+        <div class="history-chips" id="theme-history"></div>
+      </section>
+
+      <section class="section">
+        <div class="section-title">Mode</div>
+        <div class="row">
+          <label for="mode-select">Source</label>
+          <select id="mode-select">
+            <option value="unsplash">Unsplash</option>
+            <option value="pexels">Pexels</option>
+            <option value="lexica">Lexica</option>
+            <option value="ai">AI</option>
+            <option value="flux">Flux (Replicate)</option>
+          </select>
+        </div>
+        <div class="row">
+          <label for="ai-count">AI count (1-5)</label>
+          <select id="ai-count">
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3" selected>3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+          </select>
+        </div>
+        <div class="row">
+          <label for="ai-size">AI size</label>
+          <select id="ai-size">
+            <option value="512x512">512x512</option>
+            <option value="1024x1024" selected>1024x1024</option>
+          </select>
+        </div>
+        <div class="row">
+          <button class="btn secondary" id="apply-mode">Apply Mode</button>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-title">Playback</div>
+        <div class="btn-group">
+          <button class="btn" id="play">▶︎ Play</button>
+          <button class="btn secondary" id="pause">⏸ Pause</button>
+          <button class="btn secondary" id="prev">◀︎ Prev</button>
+          <button class="btn secondary" id="next">▶︎ Next</button>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-title">Actions</div>
+        <div class="btn-grid">
+          <button class="btn" id="refresh">♻︎ Refresh</button>
+          <button class="btn" id="generate">✨ Generate</button>
+          <button class="btn danger" id="clear">🧹 Clear</button>
+        </div>
+        <div class="command-status" id="command-status">Ready.</div>
+        <div class="notice" id="notice"></div>
+      </section>
+    </main>
+
+    <script>
+      const API_BASE = "https://vista-backend-1-6r3t.onrender.com";
+      const THEME_HISTORY_KEY = "vista_theme_history_v1";
+      const THEME_HISTORY_LIMIT = 5;
+      const GENERATE_COOLDOWN = 30;
+
+      const sessionIdEl = document.getElementById("session-id");
+      const connPill = document.getElementById("conn-pill");
+      const commandStatus = document.getElementById("command-status");
+      const notice = document.getElementById("notice");
+
+      const themeInput = document.getElementById("theme-input");
+      const themeHistory = document.getElementById("theme-history");
+      const modeSelect = document.getElementById("mode-select");
+      const aiCount = document.getElementById("ai-count");
+      const aiSize = document.getElementById("ai-size");
+
+      const btnApplyTheme = document.getElementById("apply-theme");
+      const btnApplyMode = document.getElementById("apply-mode");
+      const btnPlay = document.getElementById("play");
+      const btnPause = document.getElementById("pause");
+      const btnPrev = document.getElementById("prev");
+      const btnNext = document.getElementById("next");
+      const btnRefresh = document.getElementById("refresh");
+      const btnGenerate = document.getElementById("generate");
+      const btnClear = document.getElementById("clear");
+
+      let sessionId = null;
+      let cooldownTimer = null;
+
+      function setConnection(ok, text) {
+        connPill.textContent = text;
+        connPill.style.background = ok
+          ? "rgba(34, 197, 94, 0.2)"
+          : "rgba(244, 63, 94, 0.2)";
+      }
+
+      function setCommandStatus(text) {
+        commandStatus.textContent = text;
+      }
+
+      function loadThemeHistory() {
+        try {
+          const raw = localStorage.getItem(THEME_HISTORY_KEY);
+          const list = raw ? JSON.parse(raw) : [];
+          return Array.isArray(list) ? list : [];
+        } catch (err) {
+          return [];
+        }
+      }
+
+      function saveThemeHistory(keyword) {
+        if (!keyword) return;
+        const list = loadThemeHistory().filter((item) => item !== keyword);
+        list.unshift(keyword);
+        const trimmed = list.slice(0, THEME_HISTORY_LIMIT);
+        localStorage.setItem(THEME_HISTORY_KEY, JSON.stringify(trimmed));
+        renderThemeHistory(trimmed);
+      }
+
+      function renderThemeHistory(list = loadThemeHistory()) {
+        themeHistory.innerHTML = "";
+        list.forEach((keyword) => {
+          const chip = document.createElement("button");
+          chip.className = "chip";
+          chip.textContent = keyword;
+          chip.addEventListener("click", () => {
+            themeInput.value = keyword;
+            sendCommand("theme", { keyword });
+          });
+          themeHistory.appendChild(chip);
+        });
+      }
+
+      async function sendCommand(type, payload = {}) {
+        if (!sessionId) {
+          setCommandStatus("No session. Scan the QR code on the presenter.");
+          return;
+        }
+
+        setCommandStatus("Sending...");
+        try {
+          const res = await fetch(`${API_BASE}/api/cmd`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              session: sessionId,
+              command: { type, ...payload }
+            })
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            setConnection(false, "Disconnected");
+            setCommandStatus(data.error || "Send failed");
+            return;
+          }
+          setConnection(true, "Connected");
+          setCommandStatus("Sent ✓");
+          waitForExecuted(data.id);
+        } catch (err) {
+          setConnection(false, "Reconnecting...");
+          setCommandStatus("Network error");
+        }
+      }
+
+      async function waitForExecuted(commandId) {
+        let attempts = 0;
+        const poll = async () => {
+          attempts += 1;
+          try {
+            const res = await fetch(
+              `${API_BASE}/api/status?session=${encodeURIComponent(sessionId)}&id=${encodeURIComponent(commandId)}`
+            );
+            const data = await res.json();
+            if (data.status === "executed") {
+              setCommandStatus("Executed ✓");
+              return;
+            }
+          } catch (err) {
+            setCommandStatus("Waiting for ack...");
+          }
+          if (attempts < 12) {
+            setTimeout(poll, 500);
+          } else {
+            setCommandStatus("No ack yet");
+          }
+        };
+        poll();
+      }
+
+      function startCooldown() {
+        let remaining = GENERATE_COOLDOWN;
+        btnGenerate.disabled = true;
+        btnGenerate.textContent = `✨ ${remaining}s`;
+        cooldownTimer = setInterval(() => {
+          remaining -= 1;
+          btnGenerate.textContent = `✨ ${remaining}s`;
+          if (remaining <= 0) {
+            clearInterval(cooldownTimer);
+            btnGenerate.disabled = false;
+            btnGenerate.textContent = "✨ Generate";
+          }
+        }, 1000);
+      }
+
+      function applyTheme() {
+        const keyword = themeInput.value.trim();
+        if (!keyword) {
+          setCommandStatus("Enter a keyword first.");
+          return;
+        }
+        saveThemeHistory(keyword);
+        sendCommand("theme", { keyword });
+      }
+
+      function applyMode() {
+        sendCommand("mode", { mode: modeSelect.value });
+      }
+
+      btnApplyTheme.addEventListener("click", applyTheme);
+      btnApplyMode.addEventListener("click", applyMode);
+      btnPlay.addEventListener("click", () => sendCommand("play"));
+      btnPause.addEventListener("click", () => sendCommand("pause"));
+      btnPrev.addEventListener("click", () => sendCommand("prev"));
+      btnNext.addEventListener("click", () => sendCommand("next"));
+      btnRefresh.addEventListener("click", () => sendCommand("refresh"));
+      btnClear.addEventListener("click", () => {
+        if (confirm("Clear the gallery?")) sendCommand("clear");
+      });
+      btnGenerate.addEventListener("click", () => {
+        const keyword = themeInput.value.trim();
+        if (!keyword) {
+          setCommandStatus("Enter a keyword first.");
+          return;
+        }
+        sendCommand("ai_generate", {
+          keyword,
+          mode: modeSelect.value,
+          count: parseInt(aiCount.value, 10),
+          size: aiSize.value
+        });
+        startCooldown();
+      });
+
+      function initSession() {
+        const params = new URLSearchParams(window.location.search);
+        const fromUrl = params.get("session");
+        const stored = localStorage.getItem("vista_session_id");
+        sessionId = fromUrl || stored || "";
+        if (sessionId) {
+          localStorage.setItem("vista_session_id", sessionId);
+          sessionIdEl.textContent = sessionId;
+          setConnection(true, "Connected");
+          notice.textContent = "Ready to control the presenter.";
+        } else {
+          sessionIdEl.textContent = "—";
+          setConnection(false, "No session");
+          notice.textContent = "Scan the QR code on the presenter screen.";
+        }
+        renderThemeHistory();
+      }
+
+      initSession();
+    </script>
+  </body>
+</html>

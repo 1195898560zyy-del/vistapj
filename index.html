@@ -186,6 +186,175 @@
     .ctrl-btn.danger {
       background: #e11d48;
     }
+
+    .history {
+      width: 90%;
+      max-width: 1000px;
+      margin: 14px auto 16px;
+      padding: 14px 16px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+      text-align: left;
+    }
+
+    .history-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .history-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .history-clear {
+      border-radius: 999px;
+      border: 1px solid #cbd5e1;
+      background: #f8fafc;
+      color: #334155;
+      padding: 6px 12px;
+      cursor: pointer;
+    }
+
+    .history-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+    }
+
+    .history-card {
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 10px;
+      background: #f8fafc;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .history-card-head {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .history-keyword {
+      font-weight: 600;
+      color: #0f172a;
+    }
+
+    .history-meta {
+      font-size: 12px;
+      color: #64748b;
+    }
+
+    .history-thumbs {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+    }
+
+    .history-thumbs img {
+      width: 100%;
+      height: 70px;
+      border-radius: 8px;
+      object-fit: cover;
+    }
+
+    .history-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .history-count {
+      font-size: 12px;
+      color: #475569;
+    }
+
+    .history-restore {
+      border-radius: 999px;
+      border: none;
+      background: #2563eb;
+      color: white;
+      padding: 6px 12px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    .history-empty {
+      color: #94a3b8;
+      font-size: 13px;
+      padding: 8px 2px;
+    }
+
+    .session {
+      width: 90%;
+      max-width: 1000px;
+      margin: 10px auto 24px;
+      padding: 14px 16px;
+      border-radius: 16px;
+      border: 1px dashed #cbd5e1;
+      background: #f8fafc;
+      text-align: left;
+      display: grid;
+      gap: 12px;
+    }
+
+    .session-title {
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .session-grid {
+      display: grid;
+      grid-template-columns: 140px 1fr;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .session-qr {
+      width: 140px;
+      height: 140px;
+      border-radius: 10px;
+      border: 1px solid #e2e8f0;
+      background: white;
+      object-fit: cover;
+    }
+
+    .session-meta {
+      display: grid;
+      gap: 6px;
+      font-size: 14px;
+      color: #475569;
+    }
+
+    .session-code {
+      font-weight: 700;
+      color: #2563eb;
+    }
+
+    .session-link a {
+      color: #1d4ed8;
+      word-break: break-all;
+    }
+
+    @media (max-width: 640px) {
+      .session-grid {
+        grid-template-columns: 1fr;
+      }
+      .session-qr {
+        width: 120px;
+        height: 120px;
+      }
+    }
     /* Diffusion-style reveal animation */
 @keyframes diffusionReveal {
   0% {
@@ -275,6 +444,7 @@
   <option value="pexels">Pexels</option>
   <option value="lexica">Lexica (AI Gallery)</option>
   <option value="ai">AI (DALL·E)</option>
+  <option value="flux">Flux (Replicate)</option>
 </select>
 
 
@@ -291,6 +461,26 @@
 
   <div class="catalog-wrapper" id="catalog-wrapper" style="display:none;">
     <div class="catalog" id="catalog"></div>
+  </div>
+
+  <div class="history" id="history">
+    <div class="history-header">
+      <div class="history-title">Result history</div>
+      <button class="history-clear" onclick="clearHistory()">Clear history</button>
+    </div>
+    <div class="history-grid" id="history-grid"></div>
+  </div>
+
+  <div class="session" id="sessionBox">
+    <div class="session-title">Remote control</div>
+    <div class="session-grid">
+      <img class="session-qr" id="session-qr" alt="QR code" />
+      <div class="session-meta">
+        <div>Scan the QR code to open the phone remote.</div>
+        <div>Short code: <span class="session-code" id="session-code">—</span></div>
+        <div class="session-link"><a id="session-link" href="#" target="_blank">—</a></div>
+      </div>
+    </div>
   </div>
 
   <div class="ctrls">
@@ -404,9 +594,304 @@ let slideTimer = null;
 let currentKeyword = "";
 let currentPage = 1;
 let totalPages = 1;
+let currentAiSize = "1024x1024";
+
+let sessionID = null;
+let sessionCode = null;
+let sessionPoll = null;
+
+const HISTORY_KEY = "vista_result_history_v1";
+const HISTORY_LIMIT = 5;
+const HISTORY_MAX_IMAGES = 9;
+const HISTORY_MAX_BYTES = 4000000;
 
 function setStatus(msg) {
   document.getElementById("status").textContent = msg || "";
+}
+
+function loadHistory() {
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (err) {
+    return [];
+  }
+}
+
+function saveHistory(history) {
+  let trimmed = history.slice(0, HISTORY_LIMIT);
+  let json = JSON.stringify(trimmed);
+  while (json.length > HISTORY_MAX_BYTES && trimmed.length > 1) {
+    trimmed.pop();
+    json = JSON.stringify(trimmed);
+  }
+  localStorage.setItem(HISTORY_KEY, json);
+  return trimmed;
+}
+
+function buildHistoryEntry(mode, keyword, urls) {
+  const kept = [];
+  let usedDataUrl = false;
+  urls.forEach((url) => {
+    if (kept.length >= HISTORY_MAX_IMAGES) return;
+    if (url.startsWith("data:image")) {
+      if (usedDataUrl) return;
+      usedDataUrl = true;
+    }
+    kept.push(url);
+  });
+  return {
+    id: `${Date.now()}_${Math.random().toString(16).slice(2)}`,
+    mode,
+    keyword,
+    urls: kept,
+    total: urls.length,
+    ts: Date.now()
+  };
+}
+
+function addHistory(mode, keyword, urls) {
+  const history = loadHistory();
+  const entry = buildHistoryEntry(mode, keyword, urls);
+  history.unshift(entry);
+  const saved = saveHistory(history);
+  renderHistory(saved);
+}
+
+function clearHistory() {
+  localStorage.removeItem(HISTORY_KEY);
+  renderHistory([]);
+}
+
+function formatHistoryTime(ts) {
+  try {
+    return new Date(ts).toLocaleString();
+  } catch (err) {
+    return "";
+  }
+}
+
+function renderHistory(history = loadHistory()) {
+  const grid = document.getElementById("history-grid");
+  if (!grid) return;
+  grid.innerHTML = "";
+
+  if (!history.length) {
+    const empty = document.createElement("div");
+    empty.className = "history-empty";
+    empty.textContent = "No history yet. Run a search or generate images.";
+    grid.appendChild(empty);
+    return;
+  }
+
+  history.forEach((entry) => {
+    const card = document.createElement("div");
+    card.className = "history-card";
+
+    const head = document.createElement("div");
+    head.className = "history-card-head";
+
+    const keyword = document.createElement("div");
+    keyword.className = "history-keyword";
+    keyword.textContent = entry.keyword || "(no keyword)";
+
+    const meta = document.createElement("div");
+    meta.className = "history-meta";
+    const modeLabel = entry.mode || "unknown";
+    meta.textContent = `${modeLabel} · ${formatHistoryTime(entry.ts)}`;
+
+    head.appendChild(keyword);
+    head.appendChild(meta);
+
+    const thumbs = document.createElement("div");
+    thumbs.className = "history-thumbs";
+    (entry.urls || []).forEach((url) => {
+      const img = document.createElement("img");
+      img.src = url;
+      img.alt = entry.keyword || "history";
+      img.loading = "lazy";
+      thumbs.appendChild(img);
+    });
+
+    const footer = document.createElement("div");
+    footer.className = "history-footer";
+
+    const count = document.createElement("span");
+    count.className = "history-count";
+    const totalText = entry.total && entry.total !== (entry.urls || []).length
+      ? `${(entry.urls || []).length}/${entry.total}`
+      : `${(entry.urls || []).length}`;
+    count.textContent = `${totalText} images`;
+
+    const restore = document.createElement("button");
+    restore.className = "history-restore";
+    restore.textContent = "Restore";
+    restore.addEventListener("click", () => restoreHistory(entry.id));
+
+    footer.appendChild(count);
+    footer.appendChild(restore);
+
+    card.appendChild(head);
+    card.appendChild(thumbs);
+    card.appendChild(footer);
+    grid.appendChild(card);
+  });
+}
+
+function restoreHistory(id) {
+  const history = loadHistory();
+  const entry = history.find((item) => item.id === id);
+  if (!entry || !entry.urls || !entry.urls.length) {
+    setStatus("No images found in history.");
+    return;
+  }
+
+  stopSlideshow();
+  const keywordInput = document.getElementById("keyword");
+  keywordInput.value = entry.keyword || "";
+  const modeSelect = document.getElementById("mode");
+  if (entry.mode) {
+    modeSelect.value = entry.mode;
+    onModeChange();
+  }
+
+  const g = document.getElementById("gallery");
+  g.innerHTML = "";
+  entry.urls.forEach((url, i) => createImg(url, entry.keyword, i === 0));
+  buildCatalog(entry.urls.length);
+  setActive(0);
+  setStatus("Restored from history.");
+}
+
+function buildRemoteUrl(id) {
+  return `${API_BASE}/remote.html?session=${encodeURIComponent(id)}`;
+}
+
+function updateSessionUI(url, code) {
+  const link = document.getElementById("session-link");
+  const codeEl = document.getElementById("session-code");
+  const qr = document.getElementById("session-qr");
+  if (link) {
+    link.href = url;
+    link.textContent = url;
+  }
+  if (codeEl) {
+    codeEl.textContent = code || "—";
+  }
+  if (qr) {
+    qr.src = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(url)}`;
+  }
+}
+
+async function initSession() {
+  try {
+    const stored = localStorage.getItem("vista_presenter_session");
+    if (stored) {
+      const ping = await fetch(`${API_BASE}/api/session/${encodeURIComponent(stored)}`);
+      if (ping.ok) {
+        sessionID = stored;
+        sessionCode = "—";
+        const remoteUrl = buildRemoteUrl(sessionID);
+        updateSessionUI(remoteUrl, sessionCode);
+        startCommandPolling();
+        return;
+      }
+    }
+
+    const res = await fetch(`${API_BASE}/api/session`, { method: "POST" });
+    const data = await res.json();
+    sessionID = data.session;
+    sessionCode = data.code;
+    localStorage.setItem("vista_presenter_session", sessionID);
+    const remoteUrl = buildRemoteUrl(sessionID);
+    updateSessionUI(remoteUrl, sessionCode);
+    startCommandPolling();
+  } catch (err) {
+    console.error("Session init failed:", err);
+  }
+}
+
+function startCommandPolling() {
+  if (sessionPoll) clearInterval(sessionPoll);
+  sessionPoll = setInterval(async () => {
+    if (!sessionID) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/check?session=${sessionID}`);
+      const data = await res.json();
+      if (data.command) {
+        applyRemoteCommand(data.command);
+      }
+    } catch (err) {
+      console.error("Polling error:", err);
+    }
+  }, 800);
+}
+
+function applyRemoteCommand(command) {
+  if (!command || !command.type) return;
+
+  if (command.type === "theme") {
+    const keywordInput = document.getElementById("keyword");
+    keywordInput.value = command.keyword || "";
+    searchOrGenerate();
+    return;
+  }
+
+  if (command.type === "mode") {
+    const modeSelect = document.getElementById("mode");
+    modeSelect.value = command.mode || "unsplash";
+    onModeChange();
+    return;
+  }
+
+  if (command.type === "play") {
+    startSlideshow();
+    return;
+  }
+
+  if (command.type === "pause") {
+    stopSlideshow();
+    return;
+  }
+
+  if (command.type === "next") {
+    setActive(slideIndex + 1);
+    return;
+  }
+
+  if (command.type === "prev") {
+    setActive(slideIndex - 1);
+    return;
+  }
+
+  if (command.type === "refresh") {
+    searchOrGenerate();
+    return;
+  }
+
+  if (command.type === "clear") {
+    clearGallery();
+    return;
+  }
+
+  if (command.type === "ai_generate") {
+    const keywordInput = document.getElementById("keyword");
+    const modeSelect = document.getElementById("mode");
+    const aiCountInput = document.getElementById("ai-count");
+
+    keywordInput.value = command.keyword || keywordInput.value;
+    modeSelect.value = command.mode || "ai";
+    onModeChange();
+    if (command.count) {
+      aiCountInput.value = command.count;
+    }
+    if (command.size) {
+      currentAiSize = command.size;
+    }
+    searchOrGenerate();
+    return;
+  }
 }
 
 function clearGallery() {
@@ -552,8 +1037,9 @@ function toggleFullscreen() {
 function onModeChange() {
   const mode = document.getElementById("mode").value;
   const aiCountInput = document.getElementById("ai-count");
-  aiCountInput.disabled = (mode !== "ai");
-  aiCountInput.style.opacity = mode === "ai" ? "1" : "0.5";
+  const needsCount = (mode === "ai" || mode === "flux");
+  aiCountInput.disabled = !needsCount;
+  aiCountInput.style.opacity = needsCount ? "1" : "0.5";
 }
 
 onModeChange();
@@ -578,26 +1064,22 @@ async function searchOrGenerate() {
       if (keyword !== currentKeyword) {
         currentKeyword = keyword;
         currentPage = 1;
-      } else {
-        currentPage += 1;
       }
 
-      setStatus(`Searching Unsplash... (page ${currentPage})`);
+      setStatus("Searching Unsplash... (random)");
 
       let r = await fetch(
-        `${API_BASE}/api/unsplash?q=${encodeURIComponent(keyword)}&page=${currentPage}`
+        `${API_BASE}/api/unsplash?q=${encodeURIComponent(keyword)}&random=1`
       );
 
       let data = await r.json();
       totalPages = data.totalPages || 1;
 
-      if (!data.images || !data.images.length) {
-        currentPage = 1;
-        setStatus("Reached the end, wrapping to page 1...");
-        r = await fetch(
-          `${API_BASE}/api/unsplash?q=${encodeURIComponent(keyword)}&page=1`
-        );
-        data = await r.json();
+      if (data.error || data.errors) {
+        removeSpinner();
+        const errMsg = (data.error && (data.error.message || data.error)) || data.errors;
+        setStatus(`Unsplash failed: ${errMsg}`);
+        return;
       }
 
       removeSpinner();
@@ -615,7 +1097,8 @@ async function searchOrGenerate() {
       results.forEach((url, i) => createImg(url, keyword, i === 0));
 
       buildCatalog(results.length);
-      setStatus(`Unsplash page ${currentPage} loaded.`);
+      setStatus(`Unsplash loaded ${results.length} images.`);
+      addHistory("unsplash", keyword, results);
       return;
     }
       // ===========================
@@ -624,10 +1107,16 @@ async function searchOrGenerate() {
 if (mode === "pexels") {
   setStatus("Searching Pexels...");
 
-  const r = await fetch(`${API_BASE}/api/pexels?q=${encodeURIComponent(keyword)}`);
+  const r = await fetch(`${API_BASE}/api/pexels?q=${encodeURIComponent(keyword)}&random=1`);
   const data = await r.json();
 
   removeSpinner();
+
+  if (data.error) {
+    clearGallery();
+    setStatus(`Pexels failed: ${data.error}`);
+    return;
+  }
 
   if (!data.images || !data.images.length) {
     clearGallery();
@@ -641,6 +1130,7 @@ if (mode === "pexels") {
 
   buildCatalog(data.images.length);
   setStatus(`Pexels loaded ${data.images.length} images.`);
+  addHistory("pexels", keyword, data.images);
   return;
 }
 
@@ -648,12 +1138,27 @@ if (mode === "pexels") {
 // LEXICA
 // ===========================
 if (mode === "lexica") {
-  setStatus("Searching Lexica...");
+  if (keyword !== currentKeyword) {
+    currentKeyword = keyword;
+    currentPage = 1;
+  } else {
+    currentPage += 1;
+  }
 
-  const r = await fetch(`${API_BASE}/api/lexica?q=${encodeURIComponent(keyword)}`);
+  setStatus(`Searching Lexica... (page ${currentPage})`);
+
+  const r = await fetch(
+    `${API_BASE}/api/lexica?q=${encodeURIComponent(keyword)}&page=${currentPage}`
+  );
   const data = await r.json();
 
   removeSpinner();
+
+  if (data.error) {
+    clearGallery();
+    setStatus(`Lexica failed: ${data.error}`);
+    return;
+  }
 
   if (!data.images || !data.images.length) {
     clearGallery();
@@ -666,7 +1171,50 @@ if (mode === "lexica") {
   data.images.forEach((url, i) => createImg(url, keyword, i === 0));
 
   buildCatalog(data.images.length);
-  setStatus(`Lexica loaded ${data.images.length} AI images.`);
+  setStatus(`Lexica page ${currentPage} loaded.`);
+  addHistory("lexica", keyword, data.images);
+  return;
+}
+
+  // ===========================
+// FLUX (REPLICATE)
+// ===========================
+if (mode === "flux") {
+  setStatus("Generating Flux images...");
+  showAILoading(keyword);
+
+  let count = parseInt(document.getElementById("ai-count").value, 10);
+  if (isNaN(count) || count < 1) count = 1;
+  if (count > 5) count = 5;
+
+  const r = await fetch(`${API_BASE}/api/replicate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      prompt: keyword,
+      count
+    })
+  });
+
+  const data = await r.json();
+  removeSpinner();
+  hideAILoading();
+
+  const images = data.images || [];
+  if (!images.length) {
+    clearGallery();
+    const errMsg = (data.error && (data.error.message || data.error)) || "No images returned.";
+    setStatus(`Flux failed: ${errMsg}`);
+    return;
+  }
+
+  const g = document.getElementById("gallery");
+  g.innerHTML = "";
+  images.forEach((url, i) => createImg(url, keyword, i === 0));
+
+  buildCatalog(images.length);
+  setStatus(`Flux loaded ${images.length} images.`);
+  addHistory("flux", keyword, images);
   return;
 }
 
@@ -707,7 +1255,7 @@ const r = await fetch(`${API_BASE}/api/generate_batch`, {
   body: JSON.stringify({
     prompts,
     model: "gpt-image-1",
-    size: "1024x1024"
+    size: currentAiSize
   })
 });
 
@@ -715,9 +1263,10 @@ const data = await r.json();
 removeSpinner();
 hideAILoading();
 
-if (!data.data) {
+if (!data.data || !data.data.length) {
   clearGallery();
-  setStatus("AI failed.");
+  const errMsg = (data.error && (data.error.message || data.error)) || "No images returned.";
+  setStatus(`AI failed: ${errMsg}`);
   return;
 }
 
@@ -733,6 +1282,7 @@ urls.forEach((u, i) => createImg(u, keyword, i === 0));
 
 buildCatalog(urls.length);
 setStatus("AI images generated (multi-style mode).");
+addHistory("ai", keyword, urls);
 
   } catch (err) {
     console.error(err);
@@ -741,45 +1291,11 @@ setStatus("AI images generated (multi-style mode).");
     setStatus("Error: " + err.message);
   }
 }
+
+renderHistory();
+initSession();
 </script>
 
 </body>
 </html>
-
-<div id="sessionBox"></div>
-
-<script>
-let sessionID = null;
-
-async function initSession() {
-  const res = await fetch("/api/session", { method: "POST" });
-  const data = await res.json();
-  sessionID = data.session;
-
-  document.getElementById("sessionBox").innerHTML = `
-    <p>Control link:</p>
-    <a href="/ctrl/${sessionID}" target="_blank">
-      https://your-site.com/ctrl/${sessionID}
-    </a>
-  `;
-}
-
-initSession();
-
-// Poll every second for commands
-setInterval(async () => {
-  if (!sessionID) return;
-
-  const res = await fetch(`/api/check?session=${sessionID}`);
-  const data = await res.json();
-
-  if (data.command) {
-    console.log("Received:", data.command);
-
-    if (data.command.type === "prompt") {
-      generateImage(data.command.text); // <-- 你已有的函数
-    }
-  }
-}, 1000);
-</script>
 
