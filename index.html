@@ -227,6 +227,70 @@
       margin-right: 12px;
     }
 
+    .refine {
+      width: 90%;
+      max-width: 1000px;
+      margin: 10px auto 12px;
+      padding: 14px 16px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+      text-align: left;
+      display: grid;
+      gap: 12px;
+    }
+
+    .refine-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .refine-card {
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      background: #f8fafc;
+      padding: 10px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .refine-card img {
+      width: 100%;
+      height: 220px;
+      object-fit: contain;
+      border-radius: 10px;
+      background: white;
+    }
+
+    .refine-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #475569;
+    }
+
+    .refine-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .refine-actions input {
+      flex: 1;
+      min-width: 220px;
+    }
+
+    @media (max-width: 720px) {
+      .refine-grid {
+        grid-template-columns: 1fr;
+      }
+      .refine-card img {
+        height: 200px;
+      }
+    }
+
     .history {
       width: 90%;
       max-width: 1000px;
@@ -524,6 +588,26 @@
     </div>
   </div>
 
+  <div class="refine" id="refine">
+    <div class="settings-title">Refine image (Flux Kontext)</div>
+    <div class="refine-actions">
+      <input id="refine-prompt" type="text" placeholder="Describe how to edit the current image..." />
+      <button class="primary" onclick="refineCurrent()">Refine</button>
+      <button class="secondary" onclick="downloadRefined()">Download refined</button>
+    </div>
+    <div id="refine-status" style="font-size:13px;color:#64748b;"></div>
+    <div class="refine-grid">
+      <div class="refine-card">
+        <div class="refine-label">Original</div>
+        <img id="refine-original" alt="Original image" />
+      </div>
+      <div class="refine-card">
+        <div class="refine-label">Refined</div>
+        <img id="refine-result" alt="Refined image" />
+      </div>
+    </div>
+  </div>
+
   <div class="history" id="history">
     <div class="history-header">
       <div class="history-title">Result history</div>
@@ -653,6 +737,7 @@ const HISTORY_KEY = "vista_result_history_v1";
 const HISTORY_LIMIT = 5;
 const HISTORY_MAX_IMAGES = 9;
 const HISTORY_MAX_BYTES = 4000000;
+let lastRefinedUrl = "";
 
 function setStatus(msg) {
   document.getElementById("status").textContent = msg || "";
@@ -988,6 +1073,7 @@ function setActive(i) {
   target.classList.add("active");
   slideIndex = i % imgs.length;
   updateCatalogActive(slideIndex);
+  updateRefineOriginal();
 }
 
 function buildCatalog(count) {
@@ -1276,6 +1362,7 @@ if (mode === "flux") {
 
 renderHistory();
 initSession();
+updateRefineOriginal();
 
 const speedSelect = document.getElementById("speed-select");
 const autoplayToggle = document.getElementById("autoplay-toggle");
@@ -1300,6 +1387,75 @@ if (autoplayToggle) {
       stopSlideshow();
     }
   });
+}
+
+function updateRefineStatus(msg) {
+  const el = document.getElementById("refine-status");
+  if (el) el.textContent = msg || "";
+}
+
+function updateRefineOriginal() {
+  const original = document.getElementById("refine-original");
+  const imgs = getImages();
+  if (!original) return;
+  const active = [...imgs].find(i => i.classList.contains("active")) || imgs[0];
+  original.src = active ? active.src : "";
+}
+
+async function refineCurrent() {
+  const promptInput = document.getElementById("refine-prompt");
+  const prompt = promptInput.value.trim();
+  if (!prompt) {
+    updateRefineStatus("Please enter a refine prompt.");
+    return;
+  }
+
+  const original = document.getElementById("refine-original");
+  const inputImage = original && original.src ? original.src : "";
+  if (!inputImage) {
+    updateRefineStatus("No image selected.");
+    return;
+  }
+  if (inputImage.startsWith("data:")) {
+    updateRefineStatus("Refine supports URL images only. Use Unsplash/Pexels/Lexica/Flux outputs.");
+    return;
+  }
+
+  updateRefineStatus("Refining...");
+  try {
+    const r = await fetch(`${API_BASE}/api/refine`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        prompt,
+        input_image: inputImage
+      })
+    });
+    const data = await r.json();
+    if (!r.ok || !data.image) {
+      updateRefineStatus(`Refine failed: ${data.error || "No image returned."}`);
+      return;
+    }
+    const result = document.getElementById("refine-result");
+    result.src = data.image;
+    lastRefinedUrl = data.image;
+    updateRefineStatus("Refine complete.");
+  } catch (err) {
+    updateRefineStatus(`Refine error: ${err.message}`);
+  }
+}
+
+function downloadRefined() {
+  if (!lastRefinedUrl) {
+    updateRefineStatus("No refined image yet.");
+    return;
+  }
+  const a = document.createElement("a");
+  a.href = lastRefinedUrl;
+  a.download = `refined_${Date.now()}.jpg`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
 }
 </script>
 
