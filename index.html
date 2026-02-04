@@ -241,35 +241,6 @@
       gap: 12px;
     }
 
-    .refine-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-    }
-
-    .refine-card {
-      border: 1px solid #e2e8f0;
-      border-radius: 12px;
-      background: #f8fafc;
-      padding: 10px;
-      display: grid;
-      gap: 8px;
-    }
-
-    .refine-card img {
-      width: 100%;
-      height: 220px;
-      object-fit: contain;
-      border-radius: 10px;
-      background: white;
-    }
-
-    .refine-label {
-      font-size: 12px;
-      font-weight: 600;
-      color: #475569;
-    }
-
     .refine-actions {
       display: flex;
       flex-wrap: wrap;
@@ -283,11 +254,8 @@
     }
 
     @media (max-width: 720px) {
-      .refine-grid {
-        grid-template-columns: 1fr;
-      }
-      .refine-card img {
-        height: 200px;
+      .refine-actions input {
+        min-width: 100%;
       }
     }
 
@@ -596,16 +564,6 @@
       <button class="secondary" onclick="downloadRefined()">Download refined</button>
     </div>
     <div id="refine-status" style="font-size:13px;color:#64748b;"></div>
-    <div class="refine-grid">
-      <div class="refine-card">
-        <div class="refine-label">Original</div>
-        <img id="refine-original" alt="Original image" />
-      </div>
-      <div class="refine-card">
-        <div class="refine-label">Refined</div>
-        <img id="refine-result" alt="Refined image" />
-      </div>
-    </div>
   </div>
 
   <div class="history" id="history">
@@ -738,6 +696,8 @@ const HISTORY_LIMIT = 5;
 const HISTORY_MAX_IMAGES = 9;
 const HISTORY_MAX_BYTES = 4000000;
 let lastRefinedUrl = "";
+let currentCycleId = null;
+let currentCycleRefines = 0;
 
 function setStatus(msg) {
   document.getElementById("status").textContent = msg || "";
@@ -781,7 +741,8 @@ function buildHistoryEntry(mode, keyword, urls) {
     keyword,
     urls: kept,
     total: urls.length,
-    ts: Date.now()
+    ts: Date.now(),
+    refines: 0
   };
 }
 
@@ -790,6 +751,22 @@ function addHistory(mode, keyword, urls) {
   const entry = buildHistoryEntry(mode, keyword, urls);
   history.unshift(entry);
   const saved = saveHistory(history);
+  currentCycleId = entry.id;
+  currentCycleRefines = 0;
+  renderHistory(saved);
+}
+
+function updateHistoryForRefine(refinedUrl) {
+  if (!currentCycleId || !refinedUrl) return;
+  const history = loadHistory();
+  const entry = history.find((item) => item.id === currentCycleId);
+  if (!entry) return;
+  entry.refines = (entry.refines || 0) + 1;
+  entry.total = entry.total || (entry.urls ? entry.urls.length : 0);
+  const nextUrls = [refinedUrl].concat(entry.urls || []);
+  entry.urls = nextUrls.slice(0, HISTORY_MAX_IMAGES);
+  const saved = saveHistory(history);
+  currentCycleRefines = entry.refines;
   renderHistory(saved);
 }
 
@@ -833,7 +810,8 @@ function renderHistory(history = loadHistory()) {
     const meta = document.createElement("div");
     meta.className = "history-meta";
     const modeLabel = entry.mode || "unknown";
-    meta.textContent = `${modeLabel} · ${formatHistoryTime(entry.ts)}`;
+    const refineCount = entry.refines ? ` · ${entry.refines} refine${entry.refines > 1 ? "s" : ""}` : "";
+    meta.textContent = `${modeLabel} · ${formatHistoryTime(entry.ts)}${refineCount}`;
 
     head.appendChild(keyword);
     head.appendChild(meta);
@@ -895,6 +873,8 @@ function restoreHistory(id) {
   entry.urls.forEach((url, i) => createImg(url, entry.keyword, i === 0));
   buildCatalog(entry.urls.length);
   setActive(0);
+  currentCycleId = entry.id || null;
+  currentCycleRefines = entry.refines || 0;
   setStatus("Restored from history.");
 }
 
@@ -1073,7 +1053,6 @@ function setActive(i) {
   target.classList.add("active");
   slideIndex = i % imgs.length;
   updateCatalogActive(slideIndex);
-  updateRefineOriginal();
 }
 
 function buildCatalog(count) {
@@ -1362,7 +1341,6 @@ if (mode === "flux") {
 
 renderHistory();
 initSession();
-updateRefineOriginal();
 
 const speedSelect = document.getElementById("speed-select");
 const autoplayToggle = document.getElementById("autoplay-toggle");
@@ -1394,14 +1372,6 @@ function updateRefineStatus(msg) {
   if (el) el.textContent = msg || "";
 }
 
-function updateRefineOriginal() {
-  const original = document.getElementById("refine-original");
-  const imgs = getImages();
-  if (!original) return;
-  const active = [...imgs].find(i => i.classList.contains("active")) || imgs[0];
-  original.src = active ? active.src : "";
-}
-
 async function refineCurrent() {
   const promptInput = document.getElementById("refine-prompt");
   const prompt = promptInput.value.trim();
@@ -1410,8 +1380,9 @@ async function refineCurrent() {
     return;
   }
 
-  const original = document.getElementById("refine-original");
-  const inputImage = original && original.src ? original.src : "";
+  const imgs = getImages();
+  const active = [...imgs].find(i => i.classList.contains("active")) || imgs[0];
+  const inputImage = active ? active.src : "";
   if (!inputImage) {
     updateRefineStatus("No image selected.");
     return;
@@ -1442,9 +1413,14 @@ async function refineCurrent() {
       updateRefineStatus(`Refine failed: ${data.error || "No image returned."}`);
       return;
     }
-    const result = document.getElementById("refine-result");
-    result.src = data.image;
     lastRefinedUrl = data.image;
+    updateHistoryForRefine(data.image);
+
+    const g = document.getElementById("gallery");
+    g.innerHTML = "";
+    createImg(data.image, prompt, true);
+    buildCatalog(1);
+    setActive(0);
     updateRefineStatus("Refine complete.");
   } catch (err) {
     updateRefineStatus(`Refine error: ${err.message}`);
