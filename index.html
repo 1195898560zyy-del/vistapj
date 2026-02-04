@@ -187,6 +187,46 @@
       background: #e11d48;
     }
 
+    .settings {
+      width: 90%;
+      max-width: 1000px;
+      margin: 10px auto 12px;
+      padding: 12px 14px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+      text-align: left;
+      display: grid;
+      gap: 10px;
+    }
+
+    .settings-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #0f172a;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+    }
+
+    .settings-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .settings-row label {
+      font-size: 13px;
+      color: #475569;
+      margin-right: 6px;
+    }
+
+    .settings-row select,
+    .settings-row input[type="checkbox"] {
+      margin-right: 12px;
+    }
+
     .history {
       width: 90%;
       max-width: 1000px;
@@ -443,7 +483,6 @@
   <option value="unsplash" selected>Unsplash</option>
   <option value="pexels">Pexels</option>
   <option value="lexica">Lexica (AI Gallery)</option>
-  <option value="ai">AI (DALL·E)</option>
   <option value="flux">Flux (Replicate)</option>
 </select>
 
@@ -451,7 +490,6 @@
     <input id="ai-count" type="number" min="1" max="10" value="3" />
 
     <button class="primary" onclick="searchOrGenerate()">Search / Generate</button>
-    <button class="secondary" onclick="testAnimation()">Test Animation</button>
 
   </div>
 
@@ -469,6 +507,21 @@
     <button class="ctrl-btn secondary" onclick="toggleFullscreen()">⛶ Fullscreen</button>
     <button class="ctrl-btn secondary" onclick="downloadCurrent()">⬇ Download</button>
     <button class="ctrl-btn danger" onclick="clearGallery()">Clear</button>
+  </div>
+
+  <div class="settings" id="settings">
+    <div class="settings-title">Playback settings</div>
+    <div class="settings-row">
+      <label for="speed-select">Speed</label>
+      <select id="speed-select">
+        <option value="2000">Fast (2s)</option>
+        <option value="3000" selected>Normal (3s)</option>
+        <option value="5000">Slow (5s)</option>
+      </select>
+
+      <label for="autoplay-toggle">Autoplay</label>
+      <input id="autoplay-toggle" type="checkbox" />
+    </div>
   </div>
 
   <div class="history" id="history">
@@ -519,12 +572,6 @@ async function forceDownload(url, filename) {
     console.error("Download failed:", err);
     alert("Failed to download image.");
   }
-}
-/* =====================================================
-             TEST AI LOADING ANIMATION
-===================================================== */
-function testAnimation() {
-  showAILoading("test");
 }
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
@@ -591,11 +638,12 @@ const FRONTEND_BASE = "https://1195898560zyy-del.github.io/vistapj";
 
 let slideIndex = 0;
 let slideTimer = null;
+let slideInterval = 3000;
+let isPlaying = false;
 
 let currentKeyword = "";
 let currentPage = 1;
 let totalPages = 1;
-let currentAiSize = "1024x1024";
 
 let sessionID = null;
 let sessionCode = null;
@@ -882,13 +930,10 @@ function applyRemoteCommand(command) {
     const aiCountInput = document.getElementById("ai-count");
 
     keywordInput.value = command.keyword || keywordInput.value;
-    modeSelect.value = command.mode || "ai";
+    modeSelect.value = command.mode || "flux";
     onModeChange();
     if (command.count) {
       aiCountInput.value = command.count;
-    }
-    if (command.size) {
-      currentAiSize = command.size;
     }
     searchOrGenerate();
     return;
@@ -978,7 +1023,8 @@ function startSlideshow() {
   setActive(0);
   slideTimer = setInterval(() => {
     setActive(slideIndex + 1);
-  }, 3000);
+  }, slideInterval);
+  isPlaying = true;
 }
 
 function stopSlideshow() {
@@ -986,6 +1032,7 @@ function stopSlideshow() {
     clearInterval(slideTimer);
     slideTimer = null;
   }
+  isPlaying = false;
 }
 
 function downloadCurrent() {
@@ -1038,7 +1085,7 @@ function toggleFullscreen() {
 function onModeChange() {
   const mode = document.getElementById("mode").value;
   const aiCountInput = document.getElementById("ai-count");
-  const needsCount = (mode === "ai" || mode === "flux");
+  const needsCount = (mode === "flux");
   aiCountInput.disabled = !needsCount;
   aiCountInput.style.opacity = needsCount ? "1" : "0.5";
 }
@@ -1219,72 +1266,6 @@ if (mode === "flux") {
   return;
 }
 
-    /* ==========================
-     AI MODE — 多风格生成
-========================== */
-setStatus("Generating AI images...");
-showAILoading(keyword);
-
-let count = parseInt(document.getElementById("ai-count").value, 10);
-if (isNaN(count) || count < 1) count = 1;
-if (count > 10) count = 10;
-
-/* 你的风格池 */
-const stylePool = [
-  "cinematic lighting",
-  "digital art, highly detailed",
-  "watercolor illustration",
-  "isometric style",
-  "neon cyberpunk palette",
-  "studio photography, depth of field",
-  "surreal concept art",
-  "minimalist flat design",
-  "futuristic sci-fi cityscape",
-  "warm sunset color grading"
-];
-
-/* 🟦 创建 N 个不同 prompt */
-const prompts = Array.from({ length: count }).map(() => {
-  const style = stylePool[Math.floor(Math.random() * stylePool.length)];
-  return `${keyword}, ${style}`;
-});
-
-/* ⬇ 调用新 API */
-const r = await fetch(`${API_BASE}/api/generate_batch`, {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({
-    prompts,
-    model: "gpt-image-1",
-    size: currentAiSize
-  })
-});
-
-const data = await r.json();
-removeSpinner();
-hideAILoading();
-
-if (!data.data || !data.data.length) {
-  clearGallery();
-  const errMsg = (data.error && (data.error.message || data.error)) || "No images returned.";
-  setStatus(`AI failed: ${errMsg}`);
-  return;
-}
-
-/* 提取 URL */
-const urls = data.data.map(
-  it => it.url || `data:image/png;base64,${it.b64_json}`
-);
-
-/* 放入 gallery */
-const g = document.getElementById("gallery");
-g.innerHTML = "";
-urls.forEach((u, i) => createImg(u, keyword, i === 0));
-
-buildCatalog(urls.length);
-setStatus("AI images generated (multi-style mode).");
-addHistory("ai", keyword, urls);
-
   } catch (err) {
     console.error(err);
     removeSpinner();
@@ -1295,6 +1276,31 @@ addHistory("ai", keyword, urls);
 
 renderHistory();
 initSession();
+
+const speedSelect = document.getElementById("speed-select");
+const autoplayToggle = document.getElementById("autoplay-toggle");
+
+if (speedSelect) {
+  speedSelect.addEventListener("change", () => {
+    const value = parseInt(speedSelect.value, 10);
+    if (!Number.isNaN(value)) {
+      slideInterval = value;
+      if (isPlaying) {
+        startSlideshow();
+      }
+    }
+  });
+}
+
+if (autoplayToggle) {
+  autoplayToggle.addEventListener("change", () => {
+    if (autoplayToggle.checked) {
+      startSlideshow();
+    } else {
+      stopSlideshow();
+    }
+  });
+}
 </script>
 
 </body>

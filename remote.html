@@ -214,7 +214,6 @@
             <option value="unsplash">Unsplash</option>
             <option value="pexels">Pexels</option>
             <option value="lexica">Lexica</option>
-            <option value="ai">AI</option>
             <option value="flux">Flux (Replicate)</option>
           </select>
         </div>
@@ -443,7 +442,7 @@
       });
 
       function updateAiControls() {
-        const isAiMode = modeSelect.value === "ai" || modeSelect.value === "flux";
+        const isAiMode = modeSelect.value === "flux";
         aiCount.disabled = !isAiMode;
         aiSize.disabled = !isAiMode;
         aiCount.style.opacity = isAiMode ? "1" : "0.5";
