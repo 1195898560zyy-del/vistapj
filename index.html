@@ -1421,6 +1421,12 @@ async function refineCurrent() {
     return;
   }
 
+  const ok = confirm("Refine will use a paid API call. Continue?");
+  if (!ok) {
+    updateRefineStatus("Refine canceled.");
+    return;
+  }
+
   updateRefineStatus("Refining...");
   try {
     const r = await fetch(`${API_BASE}/api/refine`, {
