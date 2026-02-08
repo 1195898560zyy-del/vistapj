@@ -989,6 +989,15 @@ function applyRemoteCommand(command) {
     return;
   }
 
+  if (command.type === "refine") {
+    const refineInput = document.getElementById("refine-prompt");
+    if (refineInput) {
+      refineInput.value = command.prompt || "";
+    }
+    refineCurrent();
+    return;
+  }
+
   if (command.type === "ai_generate") {
     const keywordInput = document.getElementById("keyword");
     const modeSelect = document.getElementById("mode");

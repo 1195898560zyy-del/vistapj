@@ -248,6 +248,17 @@
         <div class="command-status" id="command-status">Ready.</div>
         <div class="notice" id="notice"></div>
       </section>
+
+      <section class="section">
+        <div class="section-title">Refine</div>
+        <div class="row">
+          <label for="refine-input">Refine prompt</label>
+          <input id="refine-input" type="text" placeholder="Make it cinematic, add neon lights..." />
+        </div>
+        <div class="row">
+          <button class="btn" id="refine-send">🧪 Refine</button>
+        </div>
+      </section>
     </main>
 
     <script>
@@ -266,6 +277,7 @@
       const modeSelect = document.getElementById("mode-select");
       const aiCount = document.getElementById("ai-count");
       const aiSize = document.getElementById("ai-size");
+      const refineInput = document.getElementById("refine-input");
 
       const btnApplyTheme = document.getElementById("apply-theme");
       const btnPlayToggle = document.getElementById("play-toggle");
@@ -273,6 +285,7 @@
       const btnNext = document.getElementById("next");
       const btnGenerate = document.getElementById("generate");
       const btnClear = document.getElementById("clear");
+      const btnRefine = document.getElementById("refine-send");
 
       let sessionId = null;
       let cooldownTimer = null;
@@ -439,6 +452,14 @@
           size: aiSize.value
         });
         startCooldown();
+      });
+      btnRefine.addEventListener("click", () => {
+        const prompt = refineInput.value.trim();
+        if (!prompt) {
+          setCommandStatus("Enter a refine prompt first.");
+          return;
+        }
+        sendCommand("refine", { prompt });
       });
 
       function updateAiControls() {
