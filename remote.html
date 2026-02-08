@@ -214,7 +214,6 @@
             <option value="unsplash">Unsplash</option>
             <option value="pexels">Pexels</option>
             <option value="lexica">Lexica</option>
-            <option value="flux">Flux (Replicate)</option>
           </select>
         </div>
         <div class="row">
@@ -228,10 +227,13 @@
           </select>
         </div>
         <div class="row">
-          <label for="ai-size">AI size</label>
+          <label for="ai-size">Aspect ratio</label>
           <select id="ai-size">
-            <option value="512x512">512x512</option>
-            <option value="1024x1024" selected>1024x1024</option>
+            <option value="1:1" selected>1:1</option>
+            <option value="4:3">4:3</option>
+            <option value="16:9">16:9</option>
+            <option value="3:4">3:4</option>
+            <option value="9:16">9:16</option>
           </select>
         </div>
       </section>
@@ -463,12 +465,11 @@
       });
 
       function updateAiControls() {
-        const isAiMode = modeSelect.value === "flux";
-        aiCount.disabled = !isAiMode;
-        aiSize.disabled = !isAiMode;
-        aiCount.style.opacity = isAiMode ? "1" : "0.5";
-        aiSize.style.opacity = isAiMode ? "1" : "0.5";
-        btnGenerate.disabled = !isAiMode;
+        aiCount.disabled = false;
+        aiSize.disabled = false;
+        aiCount.style.opacity = "1";
+        aiSize.style.opacity = "1";
+        btnGenerate.disabled = false;
       }
 
       function initSession() {

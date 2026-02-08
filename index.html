@@ -30,6 +30,45 @@
       margin: 10px auto 18px;
     }
 
+    .control-panels {
+      width: 90%;
+      max-width: 1000px;
+      margin: 10px auto 18px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .panel {
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+      text-align: left;
+      display: grid;
+      gap: 10px;
+    }
+
+    .panel-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #0f172a;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+    }
+
+    .panel-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .panel-row input {
+      flex: 1;
+      min-width: 220px;
+    }
+
     input, select, button {
       padding: 10px 14px;
       border-radius: 999px;
@@ -508,21 +547,41 @@
 
   <h1>VISTA — Image Library + AI</h1>
 
-  <div class="bar">
-    <input id="keyword" type="text" placeholder="Enter theme (e.g. dog, future city)" />
+  <div class="control-panels">
+    <div class="panel">
+      <div class="panel-title">Search library</div>
+      <div class="panel-row">
+        <input id="search-keyword" type="text" placeholder="Search keyword (e.g. dog, future city)" />
+        <select id="mode" onchange="onModeChange()">
+          <option value="unsplash" selected>Unsplash</option>
+          <option value="pexels">Pexels</option>
+          <option value="lexica">Lexica (AI Gallery)</option>
+        </select>
+        <button class="primary" onclick="searchLibrary()">Search</button>
+      </div>
+    </div>
 
-    <select id="mode" onchange="onModeChange()">
-  <option value="unsplash" selected>Unsplash</option>
-  <option value="pexels">Pexels</option>
-  <option value="lexica">Lexica (AI Gallery)</option>
-  <option value="flux">Flux (Replicate)</option>
-</select>
-
-
-    <input id="ai-count" type="number" min="1" max="10" value="3" />
-
-    <button class="primary" onclick="searchOrGenerate()">Search / Generate</button>
-
+    <div class="panel">
+      <div class="panel-title">AI generate (Flux)</div>
+      <div class="panel-row">
+        <input id="ai-prompt" type="text" placeholder="Describe what to generate..." />
+        <select id="ai-count">
+          <option value="1">1</option>
+          <option value="2">2</option>
+          <option value="3" selected>3</option>
+          <option value="4">4</option>
+          <option value="5">5</option>
+        </select>
+        <select id="ai-size">
+          <option value="1:1" selected>1:1</option>
+          <option value="4:3">4:3</option>
+          <option value="16:9">16:9</option>
+          <option value="3:4">3:4</option>
+          <option value="9:16">9:16</option>
+        </select>
+        <button class="primary" onclick="generateAi()">Generate</button>
+      </div>
+    </div>
   </div>
 
   <div id="status"></div>
@@ -860,10 +919,13 @@ function restoreHistory(id) {
   }
 
   stopSlideshow();
-  const keywordInput = document.getElementById("keyword");
-  keywordInput.value = entry.keyword || "";
+  const searchInput = document.getElementById("search-keyword");
+  const aiPromptInput = document.getElementById("ai-prompt");
+  const nextKeyword = entry.keyword || "";
+  if (searchInput) searchInput.value = nextKeyword;
+  if (aiPromptInput) aiPromptInput.value = nextKeyword;
   const modeSelect = document.getElementById("mode");
-  if (entry.mode) {
+  if (entry.mode && entry.mode !== "flux") {
     modeSelect.value = entry.mode;
     onModeChange();
   }
@@ -946,9 +1008,12 @@ function applyRemoteCommand(command) {
   if (!command || !command.type) return;
 
   if (command.type === "theme") {
-    const keywordInput = document.getElementById("keyword");
-    keywordInput.value = command.keyword || "";
-    searchOrGenerate();
+    const searchInput = document.getElementById("search-keyword");
+    const aiPromptInput = document.getElementById("ai-prompt");
+    const nextValue = command.keyword || "";
+    if (searchInput) searchInput.value = nextValue;
+    if (aiPromptInput) aiPromptInput.value = nextValue;
+    searchLibrary();
     return;
   }
 
@@ -980,7 +1045,7 @@ function applyRemoteCommand(command) {
   }
 
   if (command.type === "refresh") {
-    searchOrGenerate();
+    searchLibrary();
     return;
   }
 
@@ -994,22 +1059,25 @@ function applyRemoteCommand(command) {
     if (refineInput) {
       refineInput.value = command.prompt || "";
     }
-    refineCurrent();
+    refineCurrent(true);
     return;
   }
 
   if (command.type === "ai_generate") {
-    const keywordInput = document.getElementById("keyword");
-    const modeSelect = document.getElementById("mode");
+    const aiPromptInput = document.getElementById("ai-prompt");
     const aiCountInput = document.getElementById("ai-count");
+    const aiSizeInput = document.getElementById("ai-size");
 
-    keywordInput.value = command.keyword || keywordInput.value;
-    modeSelect.value = command.mode || "flux";
-    onModeChange();
+    if (aiPromptInput) {
+      aiPromptInput.value = command.keyword || aiPromptInput.value;
+    }
     if (command.count) {
       aiCountInput.value = command.count;
     }
-    searchOrGenerate();
+    if (command.size && aiSizeInput) {
+      aiSizeInput.value = command.size;
+    }
+    generateAi();
     return;
   }
 }
@@ -1157,24 +1225,18 @@ function toggleFullscreen() {
 }
 
 function onModeChange() {
-  const mode = document.getElementById("mode").value;
-  const aiCountInput = document.getElementById("ai-count");
-  const needsCount = (mode === "flux");
-  aiCountInput.disabled = !needsCount;
-  aiCountInput.style.opacity = needsCount ? "1" : "0.5";
+  // Placeholder for history restore/remote sync.
 }
 
-onModeChange();
-
-async function searchOrGenerate() {
+async function searchLibrary() {
   stopSlideshow();
 
-  const keywordInput = document.getElementById("keyword");
+  const keywordInput = document.getElementById("search-keyword");
   const mode = document.getElementById("mode").value;
   const keyword = keywordInput.value.trim();
 
   if (!keyword) {
-    setStatus("Please enter a keyword.");
+    setStatus("Please enter a search keyword.");
     return;
   }
 
@@ -1298,48 +1360,69 @@ if (mode === "lexica") {
   return;
 }
 
-  // ===========================
-// FLUX (REPLICATE)
-// ===========================
-if (mode === "flux") {
+  } catch (err) {
+    console.error(err);
+    removeSpinner();
+    setStatus("Error: " + err.message);
+  }
+}
+
+function searchOrGenerate() {
+  return searchLibrary();
+}
+
+async function generateAi() {
+  stopSlideshow();
+
+  const promptInput = document.getElementById("ai-prompt");
+  const prompt = promptInput.value.trim();
+
+  if (!prompt) {
+    setStatus("Please enter a generate prompt.");
+    return;
+  }
+
+  addSpinner();
   setStatus("Generating Flux images...");
-  showAILoading(keyword);
+  showAILoading(prompt);
 
   let count = parseInt(document.getElementById("ai-count").value, 10);
   if (isNaN(count) || count < 1) count = 1;
   if (count > 5) count = 5;
 
-  const r = await fetch(`${API_BASE}/api/replicate`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      prompt: keyword,
-      count
-    })
-  });
+  const aiSize = document.getElementById("ai-size");
+  const aspectRatio = aiSize ? aiSize.value : "1:1";
 
-  const data = await r.json();
-  removeSpinner();
-  hideAILoading();
+  try {
+    const r = await fetch(`${API_BASE}/api/replicate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        prompt,
+        count,
+        aspect_ratio: aspectRatio
+      })
+    });
 
-  const images = data.images || [];
-  if (!images.length) {
-    clearGallery();
-    const errMsg = (data.error && (data.error.message || data.error)) || "No images returned.";
-    setStatus(`Flux failed: ${errMsg}`);
-    return;
-  }
+    const data = await r.json();
+    removeSpinner();
+    hideAILoading();
 
-  const g = document.getElementById("gallery");
-  g.innerHTML = "";
-  images.forEach((url, i) => createImg(url, keyword, i === 0));
+    const images = data.images || [];
+    if (!images.length) {
+      clearGallery();
+      const errMsg = (data.error && (data.error.message || data.error)) || "No images returned.";
+      setStatus(`Flux failed: ${errMsg}`);
+      return;
+    }
 
-  buildCatalog(images.length);
-  setStatus(`Flux loaded ${images.length} images.`);
-  addHistory("flux", keyword, images);
-  return;
-}
+    const g = document.getElementById("gallery");
+    g.innerHTML = "";
+    images.forEach((url, i) => createImg(url, prompt, i === 0));
 
+    buildCatalog(images.length);
+    setStatus(`Flux loaded ${images.length} images.`);
+    addHistory("flux", prompt, images);
   } catch (err) {
     console.error(err);
     removeSpinner();
@@ -1381,7 +1464,7 @@ function updateRefineStatus(msg) {
   if (el) el.textContent = msg || "";
 }
 
-async function refineCurrent() {
+async function refineCurrent(skipConfirm = false) {
   const promptInput = document.getElementById("refine-prompt");
   const prompt = promptInput.value.trim();
   if (!prompt) {
@@ -1401,10 +1484,12 @@ async function refineCurrent() {
     return;
   }
 
-  const ok = confirm("Refine will use a paid API call. Continue?");
-  if (!ok) {
-    updateRefineStatus("Refine canceled.");
-    return;
+  if (!skipConfirm) {
+    const ok = confirm("Refine will use a paid API call. Continue?");
+    if (!ok) {
+      updateRefineStatus("Refine canceled.");
+      return;
+    }
   }
 
   updateRefineStatus("Refining...");
