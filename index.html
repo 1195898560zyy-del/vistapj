@@ -557,6 +557,13 @@
           <option value="pexels">Pexels</option>
           <option value="lexica">Lexica (AI Gallery)</option>
         </select>
+        <select id="library-ratio">
+          <option value="1:1" selected>1:1</option>
+          <option value="4:3">4:3</option>
+          <option value="16:9">16:9</option>
+          <option value="3:4">3:4</option>
+          <option value="9:16">9:16</option>
+        </select>
         <button class="primary" onclick="searchLibrary()">Search</button>
       </div>
     </div>
@@ -1010,9 +1017,17 @@ function applyRemoteCommand(command) {
   if (command.type === "theme") {
     const searchInput = document.getElementById("search-keyword");
     const aiPromptInput = document.getElementById("ai-prompt");
+    const ratioSelect = document.getElementById("library-ratio");
     const nextValue = command.keyword || "";
     if (searchInput) searchInput.value = nextValue;
     if (aiPromptInput) aiPromptInput.value = nextValue;
+    if (command.mode) {
+      const modeSelect = document.getElementById("mode");
+      if (modeSelect) modeSelect.value = command.mode;
+    }
+    if (command.ratio && ratioSelect) {
+      ratioSelect.value = command.ratio;
+    }
     searchLibrary();
     return;
   }
@@ -1232,8 +1247,10 @@ async function searchLibrary() {
   stopSlideshow();
 
   const keywordInput = document.getElementById("search-keyword");
+  const ratioSelect = document.getElementById("library-ratio");
   const mode = document.getElementById("mode").value;
   const keyword = keywordInput.value.trim();
+  const ratio = ratioSelect ? ratioSelect.value : "1:1";
 
   if (!keyword) {
     setStatus("Please enter a search keyword.");
@@ -1253,7 +1270,7 @@ async function searchLibrary() {
       setStatus("Searching Unsplash... (random)");
 
       let r = await fetch(
-        `${API_BASE}/api/unsplash?q=${encodeURIComponent(keyword)}&random=1`
+        `${API_BASE}/api/unsplash?q=${encodeURIComponent(keyword)}&random=1&ratio=${encodeURIComponent(ratio)}`
       );
 
       let data = await r.json();
@@ -1291,7 +1308,7 @@ async function searchLibrary() {
 if (mode === "pexels") {
   setStatus("Searching Pexels...");
 
-  const r = await fetch(`${API_BASE}/api/pexels?q=${encodeURIComponent(keyword)}&random=1`);
+  const r = await fetch(`${API_BASE}/api/pexels?q=${encodeURIComponent(keyword)}&random=1&ratio=${encodeURIComponent(ratio)}`);
   const data = await r.json();
 
   removeSpinner();

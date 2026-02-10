@@ -195,19 +195,11 @@
       </div>
 
       <section class="section">
-        <div class="section-title">Theme</div>
+        <div class="section-title">Search library</div>
         <div class="row">
           <label for="theme-input">Keyword</label>
           <input id="theme-input" type="text" placeholder="future city, climate classroom..." />
         </div>
-        <div class="row">
-          <button class="btn" id="apply-theme">Search</button>
-        </div>
-        <div class="history-chips" id="theme-history"></div>
-      </section>
-
-      <section class="section">
-        <div class="section-title">Mode</div>
         <div class="row">
           <label for="mode-select">Source</label>
           <select id="mode-select">
@@ -217,7 +209,29 @@
           </select>
         </div>
         <div class="row">
-          <label for="ai-count">AI count (1-5)</label>
+          <label for="library-ratio">Aspect ratio</label>
+          <select id="library-ratio">
+            <option value="1:1" selected>1:1</option>
+            <option value="4:3">4:3</option>
+            <option value="16:9">16:9</option>
+            <option value="3:4">3:4</option>
+            <option value="9:16">9:16</option>
+          </select>
+        </div>
+        <div class="row">
+          <button class="btn" id="apply-theme">Search</button>
+        </div>
+        <div class="history-chips" id="theme-history"></div>
+      </section>
+
+      <section class="section">
+        <div class="section-title">AI generate (Flux)</div>
+        <div class="row">
+          <label for="ai-prompt">Prompt</label>
+          <input id="ai-prompt" type="text" placeholder="Describe what to generate..." />
+        </div>
+        <div class="row">
+          <label for="ai-count">Count (1-5)</label>
           <select id="ai-count">
             <option value="1">1</option>
             <option value="2">2</option>
@@ -236,6 +250,9 @@
             <option value="9:16">9:16</option>
           </select>
         </div>
+        <div class="row">
+          <button class="btn" id="generate">✨ Generate</button>
+        </div>
       </section>
 
       <section class="section">
@@ -244,7 +261,6 @@
           <button class="btn secondary" id="prev">◀︎ Prev</button>
           <button class="btn" id="play-toggle">▶︎ Play</button>
           <button class="btn secondary" id="next">▶︎ Next</button>
-          <button class="btn" id="generate">✨ Generate</button>
           <button class="btn danger" id="clear">🧹 Clear</button>
         </div>
         <div class="command-status" id="command-status">Ready.</div>
@@ -277,6 +293,8 @@
       const themeInput = document.getElementById("theme-input");
       const themeHistory = document.getElementById("theme-history");
       const modeSelect = document.getElementById("mode-select");
+      const ratioSelect = document.getElementById("library-ratio");
+      const aiPrompt = document.getElementById("ai-prompt");
       const aiCount = document.getElementById("ai-count");
       const aiSize = document.getElementById("ai-size");
       const refineInput = document.getElementById("refine-input");
@@ -415,7 +433,11 @@
           return;
         }
         saveThemeHistory(keyword);
-        sendCommand("theme", { keyword });
+        sendCommand("theme", {
+          keyword,
+          mode: modeSelect.value,
+          ratio: ratioSelect ? ratioSelect.value : "1:1"
+        });
       }
 
       function applyMode() {
@@ -442,14 +464,14 @@
         if (confirm("Clear the gallery?")) sendCommand("clear");
       });
       btnGenerate.addEventListener("click", () => {
-        const keyword = themeInput.value.trim();
+        const keyword = aiPrompt.value.trim();
         if (!keyword) {
-          setCommandStatus("Enter a keyword first.");
+          setCommandStatus("Enter a generate prompt first.");
           return;
         }
         sendCommand("ai_generate", {
           keyword,
-          mode: modeSelect.value,
+          mode: "flux",
           count: parseInt(aiCount.value, 10),
           size: aiSize.value
         });
