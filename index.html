@@ -555,7 +555,6 @@
         <select id="mode" onchange="onModeChange()">
           <option value="unsplash" selected>Unsplash</option>
           <option value="pexels">Pexels</option>
-          <option value="lexica">Lexica (AI Gallery)</option>
         </select>
         <select id="library-ratio">
           <option value="1:1" selected>1:1</option>
@@ -1201,12 +1200,11 @@ function downloadCurrent() {
 
   const isUnsplash = url.includes("images.unsplash.com");
   const isPexels = url.includes("pexels.com") || url.includes("images.pexels.com");
-  const isLexica = url.includes("lexica");
+  const isLexica = false;
 
   const filename =
     (isUnsplash ? "unsplash_" :
      isPexels   ? "pexels_"   :
-     isLexica   ? "lexica_"   :
                   "ai_") + Date.now() + ".jpg";
 
   // 强制下载第三方图库，AI 图走原生下载
@@ -1338,44 +1336,7 @@ if (mode === "pexels") {
   // ===========================
 // LEXICA
 // ===========================
-if (mode === "lexica") {
-  if (keyword !== currentKeyword) {
-    currentKeyword = keyword;
-    currentPage = 1;
-  } else {
-    currentPage += 1;
-  }
-
-  setStatus(`Searching Lexica... (page ${currentPage})`);
-
-  const r = await fetch(
-    `${API_BASE}/api/lexica?q=${encodeURIComponent(keyword)}&page=${currentPage}`
-  );
-  const data = await r.json();
-
-  removeSpinner();
-
-  if (data.error) {
-    clearGallery();
-    setStatus(`Lexica failed: ${data.error}`);
-    return;
-  }
-
-  if (!data.images || !data.images.length) {
-    clearGallery();
-    setStatus("No Lexica results found.");
-    return;
-  }
-
-  const g = document.getElementById("gallery");
-  g.innerHTML = "";
-  data.images.forEach((url, i) => createImg(url, keyword, i === 0));
-
-  buildCatalog(data.images.length);
-  setStatus(`Lexica page ${currentPage} loaded.`);
-  addHistory("lexica", keyword, data.images);
-  return;
-}
+// Lexica removed
 
   } catch (err) {
     console.error(err);
