@@ -21,6 +21,78 @@
       letter-spacing: 1px;
     }
 
+    .weather {
+      width: 90%;
+      max-width: 1000px;
+      margin: 12px auto 18px;
+      border-radius: 18px;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      overflow: hidden;
+      position: relative;
+      min-height: 150px;
+      box-shadow: 0 16px 40px rgba(15, 23, 42, 0.18);
+    }
+
+    .weather::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(120deg, rgba(15, 23, 42, 0.72), rgba(15, 23, 42, 0.2));
+      pointer-events: none;
+    }
+
+    .weather-bg {
+      position: absolute;
+      inset: 0;
+      background-size: cover;
+      background-position: center;
+      filter: saturate(1.1) contrast(1.05);
+      transform: scale(1.02);
+    }
+
+    .weather-content {
+      position: relative;
+      z-index: 1;
+      padding: 16px 18px;
+      color: #f8fafc;
+      text-align: left;
+      display: grid;
+      gap: 8px;
+    }
+
+    .weather-title {
+      font-size: 12px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      opacity: 0.8;
+    }
+
+    .weather-main {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 12px;
+    }
+
+    .weather-temp {
+      font-size: 42px;
+      font-weight: 700;
+    }
+
+    .weather-meta {
+      display: grid;
+      gap: 4px;
+      font-size: 14px;
+    }
+
+    .weather-extra {
+      display: flex;
+      gap: 14px;
+      font-size: 12px;
+      opacity: 0.85;
+      flex-wrap: wrap;
+    }
+
     .bar {
       display: flex;
       flex-wrap: wrap;
@@ -547,6 +619,25 @@
 
   <h1>VISTA — Image Library + AI</h1>
 
+  <section class="weather" id="weather-card">
+    <div class="weather-bg" id="weather-bg"></div>
+    <div class="weather-content">
+      <div class="weather-title">Local weather wallpaper</div>
+      <div class="weather-main">
+        <div class="weather-temp" id="weather-temp">--°</div>
+        <div class="weather-meta">
+          <div id="weather-city">Locating...</div>
+          <div id="weather-desc">—</div>
+        </div>
+      </div>
+      <div class="weather-extra">
+        <span id="weather-humidity">Humidity —</span>
+        <span id="weather-wind">Wind —</span>
+        <span id="weather-time">Updated —</span>
+      </div>
+    </div>
+  </section>
+
   <div class="control-panels">
     <div class="panel">
       <div class="panel-title">Search library</div>
@@ -742,6 +833,8 @@ async function startUnsplashPreview(keyword) {
 ===================================================== */
 const API_BASE = "https://vista-backend-1-6r3t.onrender.com";
 const FRONTEND_BASE = "https://1195898560zyy-del.github.io/vistapj";
+const WEATHER_CACHE_KEY = "vista_weather_cache_v1";
+const WEATHER_TTL = 10 * 60 * 1000;
 
 let slideIndex = 0;
 let slideTimer = null;
@@ -766,6 +859,136 @@ let currentCycleRefines = 0;
 
 function setStatus(msg) {
   document.getElementById("status").textContent = msg || "";
+}
+
+function readWeatherCache() {
+  try {
+    const raw = localStorage.getItem(WEATHER_CACHE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (err) {
+    return null;
+  }
+}
+
+function writeWeatherCache(data) {
+  try {
+    localStorage.setItem(WEATHER_CACHE_KEY, JSON.stringify(data));
+  } catch (err) {
+    // ignore cache errors
+  }
+}
+
+function formatWeatherTime(dt, tz) {
+  if (!dt || tz === undefined || tz === null) return "Updated —";
+  const localMs = (dt + tz) * 1000;
+  const local = new Date(localMs);
+  const hh = String(local.getUTCHours()).padStart(2, "0");
+  const mm = String(local.getUTCMinutes()).padStart(2, "0");
+  return `Updated ${hh}:${mm}`;
+}
+
+function weatherToQuery(main = "", description = "", isNight = false) {
+  const base = main.toLowerCase();
+  const desc = description.toLowerCase();
+  if (base.includes("thunder")) return "thunderstorm skyline, dramatic clouds, cinematic";
+  if (base.includes("snow")) return "snowy landscape, soft light, serene, cinematic";
+  if (base.includes("rain") || desc.includes("drizzle")) return "rainy city street, reflections, moody, cinematic";
+  if (base.includes("fog") || base.includes("mist") || desc.includes("haze")) {
+    return "foggy forest, atmospheric, muted tones, cinematic";
+  }
+  if (base.includes("cloud")) return "overcast mountains, soft light, minimal, cinematic";
+  if (base.includes("clear") && isNight) return "clear night sky, stars, calm city, cinematic";
+  if (base.includes("clear")) return "sunny horizon, warm light, crisp air, cinematic";
+  return "cinematic landscape, soft light, atmospheric";
+}
+
+function applyWeatherUI(data) {
+  const tempEl = document.getElementById("weather-temp");
+  const cityEl = document.getElementById("weather-city");
+  const descEl = document.getElementById("weather-desc");
+  const humEl = document.getElementById("weather-humidity");
+  const windEl = document.getElementById("weather-wind");
+  const timeEl = document.getElementById("weather-time");
+
+  if (tempEl && data.temp !== null && data.temp !== undefined) {
+    tempEl.textContent = `${Math.round(data.temp)}°`;
+  }
+  if (cityEl) cityEl.textContent = data.city || "Unknown location";
+  if (descEl) descEl.textContent = data.description || data.main || "—";
+  if (humEl) humEl.textContent = data.humidity !== null && data.humidity !== undefined
+    ? `Humidity ${data.humidity}%`
+    : "Humidity —";
+  if (windEl) windEl.textContent = data.wind !== null && data.wind !== undefined
+    ? `Wind ${Math.round(data.wind)} m/s`
+    : "Wind —";
+  if (timeEl) timeEl.textContent = formatWeatherTime(data.dt, data.timezone);
+}
+
+async function applyWeatherBackdrop(data, cachedBg) {
+  const bg = document.getElementById("weather-bg");
+  if (!bg) return;
+  if (cachedBg) {
+    bg.style.backgroundImage = `url(${cachedBg})`;
+    return;
+  }
+
+  const isNight = (data.icon || "").includes("n");
+  const query = weatherToQuery(data.main || "", data.description || "", isNight);
+  try {
+    const r = await fetch(
+      `${API_BASE}/api/unsplash?q=${encodeURIComponent(query)}&random=1&ratio=16:9`
+    );
+    const res = await r.json();
+    const first = res.images && res.images[0] ? res.images[0] : "";
+    if (first) {
+      bg.style.backgroundImage = `url(${first})`;
+      const cached = readWeatherCache() || {};
+      cached.bg = first;
+      writeWeatherCache(cached);
+    }
+  } catch (err) {
+    // ignore backdrop failures
+  }
+}
+
+async function fetchWeather(lat, lon) {
+  const r = await fetch(`${API_BASE}/api/weather?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}`);
+  const data = await r.json();
+  if (!r.ok) {
+    throw new Error(data.error || "Weather failed");
+  }
+  return data;
+}
+
+function initWeather() {
+  const cached = readWeatherCache();
+  if (cached && cached.ts && Date.now() - cached.ts < WEATHER_TTL) {
+    applyWeatherUI(cached.data || {});
+    applyWeatherBackdrop(cached.data || {}, cached.bg || "");
+    return;
+  }
+
+  if (!navigator.geolocation) {
+    applyWeatherUI({ city: "Location disabled", description: "Geolocation not supported" });
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    async (pos) => {
+      try {
+        const data = await fetchWeather(pos.coords.latitude, pos.coords.longitude);
+        applyWeatherUI(data);
+        applyWeatherBackdrop(data);
+        writeWeatherCache({ ts: Date.now(), data, bg: "" });
+      } catch (err) {
+        applyWeatherUI({ city: "Weather unavailable", description: err.message });
+      }
+    },
+    () => {
+      applyWeatherUI({ city: "Location blocked", description: "Enable location to show weather" });
+    },
+    { enableHighAccuracy: false, timeout: 8000, maximumAge: 600000 }
+  );
 }
 
 function loadHistory() {
@@ -1411,6 +1634,7 @@ async function generateAi() {
 
 renderHistory();
 initSession();
+initWeather();
 
 const speedSelect = document.getElementById("speed-select");
 const autoplayToggle = document.getElementById("autoplay-toggle");
