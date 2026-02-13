@@ -1030,7 +1030,7 @@ async function applyWeatherBackdrop(data, cachedImages) {
   const query = weatherToQuery(data.main || "", data.description || "", isNight);
   try {
     const r = await fetch(
-      `${API_BASE}/api/unsplash?q=${encodeURIComponent(query)}&random=1&ratio=16:9`
+      `${API_BASE}/api/unsplash?q=${encodeURIComponent(query)}&random=1&ratio=16:9&w=2400`
     );
     const res = await r.json();
     const images = res.images || [];
