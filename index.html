@@ -61,7 +61,7 @@
       content: "";
       position: absolute;
       inset: 0;
-      background: linear-gradient(120deg, rgba(15, 23, 42, 0.72), rgba(15, 23, 42, 0.2));
+      background: rgba(0, 0, 0, 0.12);
       pointer-events: none;
     }
 
@@ -70,8 +70,7 @@
       inset: 0;
       background-size: cover;
       background-position: center;
-      filter: saturate(1.1) contrast(1.05);
-      transform: scale(1.02);
+      transform: scale(1.01);
     }
 
     .weather-bg-layer {
@@ -102,6 +101,7 @@
       text-align: left;
       display: grid;
       gap: 8px;
+      text-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
     }
 
     .weather-title {
@@ -1029,8 +1029,11 @@ async function applyWeatherBackdrop(data, cachedImages) {
   const isNight = (data.icon || "").includes("n");
   const query = weatherToQuery(data.main || "", data.description || "", isNight);
   try {
+    const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+    const targetW = Math.round(window.innerWidth * pixelRatio);
+    const targetH = Math.round(window.innerHeight * pixelRatio);
     const r = await fetch(
-      `${API_BASE}/api/unsplash?q=${encodeURIComponent(query)}&random=1&ratio=16:9&w=2400`
+      `${API_BASE}/api/unsplash?q=${encodeURIComponent(query)}&random=1&ratio=16:9&w=${targetW}&h=${targetH}`
     );
     const res = await r.json();
     const images = res.images || [];
