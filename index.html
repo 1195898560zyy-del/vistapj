@@ -74,6 +74,26 @@
       transform: scale(1.02);
     }
 
+    .weather-bg-layer {
+      position: absolute;
+      inset: 0;
+      background-size: cover;
+      background-position: center;
+      opacity: 0;
+      transition: opacity 1.2s ease;
+      animation: slowZoom 18s ease-in-out infinite;
+    }
+
+    .weather-bg-layer.is-active {
+      opacity: 1;
+    }
+
+    @keyframes slowZoom {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+
     .weather-content {
       position: relative;
       z-index: 1;
@@ -656,7 +676,10 @@
   </div>
 
   <section class="weather" id="weather-view">
-    <div class="weather-bg" id="weather-bg"></div>
+    <div class="weather-bg">
+      <div class="weather-bg-layer is-active" id="weather-bg-a"></div>
+      <div class="weather-bg-layer" id="weather-bg-b"></div>
+    </div>
     <div class="weather-content">
       <div class="weather-title">Local weather wallpaper</div>
       <div class="weather-main">
@@ -876,6 +899,7 @@ const API_BASE = "https://vista-backend-1-6r3t.onrender.com";
 const FRONTEND_BASE = "https://1195898560zyy-del.github.io/vistapj";
 const WEATHER_CACHE_KEY = "vista_weather_cache_v1";
 const WEATHER_TTL = 10 * 60 * 1000;
+const WEATHER_ROTATE_MS = 12000;
 
 let slideIndex = 0;
 let slideTimer = null;
@@ -965,11 +989,40 @@ function applyWeatherUI(data) {
   if (timeEl) timeEl.textContent = formatWeatherTime(data.dt, data.timezone);
 }
 
-async function applyWeatherBackdrop(data, cachedBg) {
-  const bg = document.getElementById("weather-bg");
-  if (!bg) return;
-  if (cachedBg) {
-    bg.style.backgroundImage = `url(${cachedBg})`;
+let weatherSlideTimer = null;
+let weatherImages = [];
+let weatherImageIndex = 0;
+let weatherLayerIndex = 0;
+
+function setWeatherBackground(url) {
+  const layerA = document.getElementById("weather-bg-a");
+  const layerB = document.getElementById("weather-bg-b");
+  if (!layerA || !layerB || !url) return;
+
+  const nextLayer = weatherLayerIndex === 0 ? layerB : layerA;
+  const currentLayer = weatherLayerIndex === 0 ? layerA : layerB;
+
+  nextLayer.style.backgroundImage = `url(${url})`;
+  nextLayer.classList.add("is-active");
+  currentLayer.classList.remove("is-active");
+  weatherLayerIndex = weatherLayerIndex === 0 ? 1 : 0;
+}
+
+function startWeatherSlideshow(images) {
+  if (!images || !images.length) return;
+  clearInterval(weatherSlideTimer);
+  weatherImages = images;
+  weatherImageIndex = 0;
+  setWeatherBackground(weatherImages[0]);
+  weatherSlideTimer = setInterval(() => {
+    weatherImageIndex = (weatherImageIndex + 1) % weatherImages.length;
+    setWeatherBackground(weatherImages[weatherImageIndex]);
+  }, WEATHER_ROTATE_MS);
+}
+
+async function applyWeatherBackdrop(data, cachedImages) {
+  if (cachedImages && cachedImages.length) {
+    startWeatherSlideshow(cachedImages);
     return;
   }
 
@@ -980,11 +1033,11 @@ async function applyWeatherBackdrop(data, cachedBg) {
       `${API_BASE}/api/unsplash?q=${encodeURIComponent(query)}&random=1&ratio=16:9`
     );
     const res = await r.json();
-    const first = res.images && res.images[0] ? res.images[0] : "";
-    if (first) {
-      bg.style.backgroundImage = `url(${first})`;
+    const images = res.images || [];
+    if (images.length) {
+      startWeatherSlideshow(images);
       const cached = readWeatherCache() || {};
-      cached.bg = first;
+      cached.images = images;
       writeWeatherCache(cached);
     }
   } catch (err) {
@@ -1005,7 +1058,7 @@ function initWeather() {
   const cached = readWeatherCache();
   if (cached && cached.ts && Date.now() - cached.ts < WEATHER_TTL) {
     applyWeatherUI(cached.data || {});
-    applyWeatherBackdrop(cached.data || {}, cached.bg || "");
+    applyWeatherBackdrop(cached.data || {}, cached.images || []);
     return;
   }
 
@@ -1020,7 +1073,7 @@ function initWeather() {
         const data = await fetchWeather(pos.coords.latitude, pos.coords.longitude);
         applyWeatherUI(data);
         applyWeatherBackdrop(data);
-        writeWeatherCache({ ts: Date.now(), data, bg: "" });
+        writeWeatherCache({ ts: Date.now(), data, images: [] });
       } catch (err) {
         applyWeatherUI({ city: "Weather unavailable", description: err.message });
       }
