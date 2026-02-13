@@ -21,16 +21,40 @@
       letter-spacing: 1px;
     }
 
+    .view-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      display: flex;
+      gap: 8px;
+      z-index: 5;
+    }
+
+    .view-toggle button {
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1px solid #cbd5e1;
+      background: rgba(255, 255, 255, 0.9);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .view-toggle button.active {
+      background: #0f172a;
+      color: #f8fafc;
+      border-color: #0f172a;
+    }
+
     .weather {
-      width: 90%;
-      max-width: 1000px;
-      margin: 12px auto 18px;
-      border-radius: 18px;
-      border: 1px solid rgba(148, 163, 184, 0.4);
+      position: fixed;
+      inset: 0;
+      border-radius: 0;
+      border: none;
       overflow: hidden;
-      position: relative;
-      min-height: 150px;
-      box-shadow: 0 16px 40px rgba(15, 23, 42, 0.18);
+      min-height: 100vh;
+      box-shadow: none;
+      z-index: 1;
     }
 
     .weather::after {
@@ -53,7 +77,7 @@
     .weather-content {
       position: relative;
       z-index: 1;
-      padding: 16px 18px;
+      padding: 28px 32px;
       color: #f8fafc;
       text-align: left;
       display: grid;
@@ -75,7 +99,7 @@
     }
 
     .weather-temp {
-      font-size: 42px;
+      font-size: 56px;
       font-weight: 700;
     }
 
@@ -91,6 +115,15 @@
       font-size: 12px;
       opacity: 0.85;
       flex-wrap: wrap;
+    }
+
+    .view-hidden {
+      display: none;
+    }
+
+    .app-view {
+      position: relative;
+      z-index: 2;
     }
 
     .bar {
@@ -617,9 +650,12 @@
 
 <body>
 
-  <h1>VISTA — Image Library + AI</h1>
+  <div class="view-toggle">
+    <button id="view-weather" class="active">Weather</button>
+    <button id="view-app">Gallery</button>
+  </div>
 
-  <section class="weather" id="weather-card">
+  <section class="weather" id="weather-view">
     <div class="weather-bg" id="weather-bg"></div>
     <div class="weather-content">
       <div class="weather-title">Local weather wallpaper</div>
@@ -637,6 +673,9 @@
       </div>
     </div>
   </section>
+
+  <div id="app-view" class="app-view view-hidden">
+  <h1>VISTA — Image Library + AI</h1>
 
   <div class="control-panels">
     <div class="panel">
@@ -747,6 +786,8 @@
     <div class="sketch"></div>
     <p id="loading-text">Creating your image...</p>
     <img id="unsplash-preview" />
+  </div>
+
   </div>
   
 
@@ -1635,6 +1676,7 @@ async function generateAi() {
 renderHistory();
 initSession();
 initWeather();
+initViewToggle();
 
 const speedSelect = document.getElementById("speed-select");
 const autoplayToggle = document.getElementById("autoplay-toggle");
@@ -1734,6 +1776,29 @@ function downloadRefined() {
   document.body.appendChild(a);
   a.click();
   a.remove();
+}
+
+function initViewToggle() {
+  const weatherBtn = document.getElementById("view-weather");
+  const appBtn = document.getElementById("view-app");
+  const weatherView = document.getElementById("weather-view");
+  const appView = document.getElementById("app-view");
+  const VIEW_KEY = "vista_view_mode";
+
+  function setView(mode) {
+    const showWeather = mode === "weather";
+    if (weatherView) weatherView.classList.toggle("view-hidden", !showWeather);
+    if (appView) appView.classList.toggle("view-hidden", showWeather);
+    if (weatherBtn) weatherBtn.classList.toggle("active", showWeather);
+    if (appBtn) appBtn.classList.toggle("active", !showWeather);
+    localStorage.setItem(VIEW_KEY, mode);
+  }
+
+  if (weatherBtn) weatherBtn.addEventListener("click", () => setView("weather"));
+  if (appBtn) appBtn.addEventListener("click", () => setView("app"));
+
+  const saved = localStorage.getItem(VIEW_KEY) || "weather";
+  setView(saved);
 }
 </script>
 
