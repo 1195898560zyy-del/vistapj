@@ -391,6 +391,77 @@
       margin-right: 12px;
     }
 
+    .agent {
+      width: 90%;
+      max-width: 1000px;
+      margin: 12px auto 18px;
+      padding: 14px 16px;
+      border-radius: 16px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+      text-align: left;
+      display: grid;
+      gap: 12px;
+    }
+
+    .agent-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .agent-title {
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #0f172a;
+    }
+
+    .agent-log {
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      background: #f8fafc;
+      padding: 10px;
+      min-height: 120px;
+      max-height: 240px;
+      overflow: auto;
+      display: grid;
+      gap: 8px;
+    }
+
+    .agent-msg {
+      display: grid;
+      gap: 2px;
+      font-size: 13px;
+      color: #1f2937;
+    }
+
+    .agent-msg strong {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #64748b;
+    }
+
+    .agent-input {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .agent-input input {
+      flex: 1;
+      min-width: 220px;
+    }
+
+    .agent-status {
+      font-size: 12px;
+      color: #64748b;
+    }
+
     .refine {
       width: 90%;
       max-width: 1000px;
@@ -784,6 +855,18 @@
     <div id="refine-status" style="font-size:13px;color:#64748b;"></div>
   </div>
 
+  <div class="agent" id="agent">
+    <div class="agent-header">
+      <div class="agent-title">Agent</div>
+      <div class="agent-status" id="agent-status">Ready.</div>
+    </div>
+    <div class="agent-log" id="agent-log"></div>
+    <div class="agent-input">
+      <input id="agent-input" type="text" placeholder="Ask the agent to search, generate, or refine..." />
+      <button class="primary" id="agent-send">Send</button>
+    </div>
+  </div>
+
   <div class="history" id="history">
     <div class="history-header">
       <div class="history-title">Result history</div>
@@ -900,6 +983,7 @@ const FRONTEND_BASE = "https://1195898560zyy-del.github.io/vistapj";
 const WEATHER_CACHE_KEY = "vista_weather_cache_v1";
 const WEATHER_TTL = 10 * 60 * 1000;
 const WEATHER_ROTATE_MS = 12000;
+const AGENT_HISTORY_KEY = "vista_agent_history_v1";
 
 let slideIndex = 0;
 let slideTimer = null;
@@ -924,6 +1008,76 @@ let currentCycleRefines = 0;
 
 function setStatus(msg) {
   document.getElementById("status").textContent = msg || "";
+}
+
+function getAgentLog() {
+  try {
+    const raw = localStorage.getItem(AGENT_HISTORY_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (err) {
+    return [];
+  }
+}
+
+function saveAgentLog(items) {
+  localStorage.setItem(AGENT_HISTORY_KEY, JSON.stringify(items.slice(-20)));
+}
+
+function appendAgentMessage(role, content) {
+  const log = getAgentLog();
+  log.push({ role, content, ts: Date.now() });
+  saveAgentLog(log);
+  renderAgentLog();
+}
+
+function renderAgentLog() {
+  const logEl = document.getElementById("agent-log");
+  if (!logEl) return;
+  logEl.innerHTML = "";
+  const items = getAgentLog();
+  if (!items.length) {
+    const empty = document.createElement("div");
+    empty.className = "agent-msg";
+    empty.textContent = "No messages yet.";
+    logEl.appendChild(empty);
+    return;
+  }
+  items.forEach((item) => {
+    const row = document.createElement("div");
+    row.className = "agent-msg";
+    const label = document.createElement("strong");
+    label.textContent = item.role === "assistant" ? "Agent" : "You";
+    const text = document.createElement("div");
+    text.textContent = item.content;
+    row.appendChild(label);
+    row.appendChild(text);
+    logEl.appendChild(row);
+  });
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+function setAgentStatus(text) {
+  const el = document.getElementById("agent-status");
+  if (el) el.textContent = text;
+}
+
+function buildAgentSummary() {
+  const items = getAgentLog().slice(-6);
+  return items.map((item) => `${item.role}: ${item.content}`).join(" | ");
+}
+
+function buildAgentState() {
+  const mode = document.getElementById("mode");
+  const ratio = document.getElementById("library-ratio");
+  const aiCount = document.getElementById("ai-count");
+  const aiSize = document.getElementById("ai-size");
+  return {
+    mode: mode ? mode.value : null,
+    ratio: ratio ? ratio.value : null,
+    ai_count: aiCount ? aiCount.value : null,
+    ai_ratio: aiSize ? aiSize.value : null
+  };
 }
 
 function readWeatherCache() {
@@ -1733,6 +1887,7 @@ renderHistory();
 initSession();
 initWeather();
 initViewToggle();
+renderAgentLog();
 
 const speedSelect = document.getElementById("speed-select");
 const autoplayToggle = document.getElementById("autoplay-toggle");
@@ -1832,6 +1987,107 @@ function downloadRefined() {
   document.body.appendChild(a);
   a.click();
   a.remove();
+}
+
+async function sendAgentMessage() {
+  const input = document.getElementById("agent-input");
+  const button = document.getElementById("agent-send");
+  if (!input) return;
+  const text = input.value.trim();
+  if (!text) return;
+
+  appendAgentMessage("user", text);
+  input.value = "";
+  setAgentStatus("Thinking...");
+  if (button) button.disabled = true;
+
+  try {
+    const r = await fetch(`${API_BASE}/api/agent`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message: text,
+        summary: buildAgentSummary(),
+        state: buildAgentState()
+      })
+    });
+    const data = await r.json();
+    if (!r.ok) {
+      throw new Error(data.error || "Agent failed");
+    }
+    if (data.tool && data.result) {
+      applyAgentResult(data.tool, data.result, data.tool_args || {}, text);
+    }
+    if (data.reply) {
+      appendAgentMessage("assistant", data.reply);
+    }
+    setAgentStatus("Ready.");
+  } catch (err) {
+    appendAgentMessage("assistant", `Error: ${err.message}`);
+    setAgentStatus("Error");
+  } finally {
+    if (button) button.disabled = false;
+  }
+}
+
+function applyAgentResult(tool, result, args, fallbackText) {
+  if (tool === "search_library") {
+    const images = result.images || [];
+    if (!images.length) {
+      setStatus("No images found.");
+      return;
+    }
+    const keyword = args.query || fallbackText || "";
+    const g = document.getElementById("gallery");
+    g.innerHTML = "";
+    images.forEach((url, i) => createImg(url, keyword, i === 0));
+    buildCatalog(images.length);
+    setStatus(`Loaded ${images.length} images.`);
+    addHistory(result.source || "unsplash", keyword, images);
+  }
+
+  if (tool === "generate_ai") {
+    const images = result.images || [];
+    if (!images.length) {
+      setStatus("No images generated.");
+      return;
+    }
+    const keyword = args.prompt || fallbackText || "";
+    const g = document.getElementById("gallery");
+    g.innerHTML = "";
+    images.forEach((url, i) => createImg(url, keyword, i === 0));
+    buildCatalog(images.length);
+    setStatus(`Generated ${images.length} images.`);
+    addHistory("flux", keyword, images);
+  }
+
+  if (tool === "refine_image") {
+    const image = result.image || "";
+    if (!image) {
+      updateRefineStatus("No refined image.");
+      return;
+    }
+    const g = document.getElementById("gallery");
+    g.innerHTML = "";
+    createImg(image, args.prompt || "refine", true);
+    buildCatalog(1);
+    setActive(0);
+    lastRefinedUrl = image;
+    updateHistoryForRefine(image);
+    updateRefineStatus("Refine complete.");
+  }
+}
+
+const agentSend = document.getElementById("agent-send");
+const agentInput = document.getElementById("agent-input");
+if (agentSend) agentSend.addEventListener("click", sendAgentMessage);
+if (agentInput) {
+  agentInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendAgentMessage();
+    }
+  });
 }
 
 function initViewToggle() {
