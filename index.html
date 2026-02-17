@@ -395,7 +395,7 @@
       position: fixed;
       right: 24px;
       bottom: 24px;
-      z-index: 10;
+      z-index: 999;
       display: grid;
       gap: 10px;
       transform: translate3d(0, 0, 0);
@@ -2351,6 +2351,13 @@ function initAgentBubble() {
       applyPosition(pos.x, pos.y);
       fab.classList.toggle("left", pos.x < window.innerWidth / 2);
       fab.classList.toggle("right", pos.x >= window.innerWidth / 2);
+      const rect = fab.getBoundingClientRect();
+      const outOfView = rect.right < 0 || rect.left > window.innerWidth || rect.bottom < 0 || rect.top > window.innerHeight;
+      if (outOfView) {
+        localStorage.removeItem(POS_KEY);
+        applyPosition(0, 0);
+        snap();
+      }
     } catch (err) {
       applyPosition(0, 0);
       snap();
