@@ -1701,6 +1701,16 @@ function applyRemoteCommand(command) {
     return;
   }
 
+  if (command.type === "view") {
+    setViewMode(command.mode || "weather");
+    return;
+  }
+
+  if (command.type === "weather_refresh") {
+    refreshWeather();
+    return;
+  }
+
   if (command.type === "clear") {
     clearGallery();
     return;
@@ -2187,13 +2197,22 @@ async function sendAgentMessage() {
     if (!r.ok) {
       throw new Error(data.error || "Agent failed");
     }
-    if (data.tool && data.result) {
-      applyAgentResult(data.tool, data.result, data.tool_args || {}, text);
-    }
-    if (data.tool) {
-      appendAgentMessage("assistant", buildAgentAck(data.tool));
-    } else if (data.reply) {
-      appendAgentMessage("assistant", sanitizeAgentReply(data.reply));
+    if (Array.isArray(data.tools) && data.tools.length) {
+      data.tools.forEach((toolItem) => {
+        if (toolItem && toolItem.name && toolItem.result) {
+          applyAgentResult(toolItem.name, toolItem.result, toolItem.args || {}, text);
+        }
+      });
+      appendAgentMessage("assistant", "Done. Updated.");
+    } else {
+      if (data.tool && data.result) {
+        applyAgentResult(data.tool, data.result, data.tool_args || {}, text);
+      }
+      if (data.tool) {
+        appendAgentMessage("assistant", buildAgentAck(data.tool));
+      } else if (data.reply) {
+        appendAgentMessage("assistant", sanitizeAgentReply(data.reply));
+      }
     }
     setAgentStatus("Ready.");
   } catch (err) {
@@ -2275,6 +2294,14 @@ function applyAgentResult(tool, result, args, fallbackText) {
     updateHistoryForRefine(image);
     updateRefineStatus("Refine complete.");
   }
+
+  if (tool === "set_view") {
+    setViewMode(result.view || args.view || "weather");
+  }
+
+  if (tool === "refresh_weather") {
+    refreshWeather();
+  }
 }
 
 const agentSend = document.getElementById("agent-send");
@@ -2289,27 +2316,34 @@ if (agentInput) {
   });
 }
 
-function initViewToggle() {
+function setViewMode(mode) {
   const weatherBtn = document.getElementById("view-weather");
   const appBtn = document.getElementById("view-app");
   const weatherView = document.getElementById("weather-view");
   const appView = document.getElementById("app-view");
+  const showWeather = mode === "weather";
+  if (weatherView) weatherView.classList.toggle("view-hidden", !showWeather);
+  if (appView) appView.classList.toggle("view-hidden", showWeather);
+  if (weatherBtn) weatherBtn.classList.toggle("active", showWeather);
+  if (appBtn) appBtn.classList.toggle("active", !showWeather);
+  localStorage.setItem("vista_view_mode", mode);
+}
+
+function refreshWeather() {
+  localStorage.removeItem(WEATHER_CACHE_KEY);
+  initWeather();
+}
+
+function initViewToggle() {
+  const weatherBtn = document.getElementById("view-weather");
+  const appBtn = document.getElementById("view-app");
   const VIEW_KEY = "vista_view_mode";
 
-  function setView(mode) {
-    const showWeather = mode === "weather";
-    if (weatherView) weatherView.classList.toggle("view-hidden", !showWeather);
-    if (appView) appView.classList.toggle("view-hidden", showWeather);
-    if (weatherBtn) weatherBtn.classList.toggle("active", showWeather);
-    if (appBtn) appBtn.classList.toggle("active", !showWeather);
-    localStorage.setItem(VIEW_KEY, mode);
-  }
-
-  if (weatherBtn) weatherBtn.addEventListener("click", () => setView("weather"));
-  if (appBtn) appBtn.addEventListener("click", () => setView("app"));
+  if (weatherBtn) weatherBtn.addEventListener("click", () => setViewMode("weather"));
+  if (appBtn) appBtn.addEventListener("click", () => setViewMode("app"));
 
   const saved = localStorage.getItem(VIEW_KEY) || "weather";
-  setView(saved);
+  setViewMode(saved);
 }
 
 function initAgentBubble() {

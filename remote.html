@@ -314,6 +314,12 @@
         if (tool === "refine_image") {
           sendCommand("refine", { prompt: args.prompt || "" });
         }
+        if (tool === "set_view") {
+          sendCommand("view", { mode: args.view || "weather" });
+        }
+        if (tool === "refresh_weather") {
+          sendCommand("weather_refresh");
+        }
       }
 
       async function sendChat() {
@@ -339,7 +345,12 @@
             throw new Error(data.error || "Agent failed");
           }
 
-          if (data.tool) {
+          if (Array.isArray(data.tools) && data.tools.length) {
+            data.tools.forEach((toolItem) => {
+              dispatchTool(toolItem.name, toolItem.args || {});
+            });
+            appendMessage("assistant", "Done. Presenter updated.");
+          } else if (data.tool) {
             dispatchTool(data.tool, data.tool_args || {});
             appendMessage("assistant", "Done. Presenter updated.");
           } else if (data.reply) {
