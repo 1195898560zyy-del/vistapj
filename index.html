@@ -847,15 +847,386 @@
       transition: opacity 1s, filter 1.6s;
     }
 
+    :root {
+      --bg-1: #1c1c1e;
+      --bg-2: #0f0f11;
+      --card: rgba(255, 255, 255, 0.04);
+      --card-strong: rgba(255, 255, 255, 0.06);
+      --border: rgba(255, 255, 255, 0.06);
+      --text: #f5f5f7;
+      --muted: rgba(245, 245, 247, 0.6);
+      --accent: #0a84ff;
+      --accent-shadow: 0 6px 20px rgba(10, 132, 255, 0.35);
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", sans-serif;
+      background: radial-gradient(
+        circle at 30% 20%,
+        var(--bg-1),
+        var(--bg-2) 60%
+      );
+      color: var(--text);
+      padding: 0;
+      text-align: left;
+    }
+
+    h1 {
+      font-weight: 600;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 6;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 28px;
+      background: rgba(15, 15, 17, 0.6);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .brand {
+      font-size: 18px;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+    }
+
+    .view-toggle {
+      position: static;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 999px;
+      padding: 4px;
+      gap: 0;
+      z-index: auto;
+    }
+
+    .view-toggle button {
+      border-radius: 999px;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-weight: 500;
+      padding: 8px 14px;
+      transition: all 0.2s cubic-bezier(.4,0,.2,1);
+    }
+
+    .view-toggle button.active {
+      background: rgba(255, 255, 255, 0.16);
+      color: var(--text);
+      border-color: transparent;
+    }
+
+    .app-view {
+      padding-bottom: 120px;
+    }
+
+    .app-shell {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 48px 28px 120px;
+      display: grid;
+      gap: 48px;
+    }
+
+    .glass-panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      backdrop-filter: blur(20px);
+      padding: 24px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+    }
+
+    .command-panel {
+      display: grid;
+      gap: 16px;
+    }
+
+    .panel-title {
+      font-size: 12px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .command-row {
+      display: grid;
+      grid-template-columns: 1fr repeat(4, auto);
+      gap: 12px;
+      align-items: center;
+    }
+
+    .command-panel input,
+    .command-panel select {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--text);
+      border-radius: 14px;
+      padding: 12px 14px;
+    }
+
+    .command-panel .primary {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 14px;
+      font-weight: 500;
+      padding: 10px 20px;
+      box-shadow: var(--accent-shadow);
+      transition: all 0.2s ease;
+    }
+
+    .command-panel .primary:hover {
+      transform: translateY(-1px);
+    }
+
+    .legacy-panels {
+      display: none;
+    }
+
+    .status-text {
+      font-size: 13px;
+      color: var(--muted);
+      text-align: left;
+    }
+
+    #status {
+      color: var(--muted);
+    }
+
+    .gallery-shell {
+      position: relative;
+      display: grid;
+      gap: 20px;
+      padding-bottom: 48px;
+    }
+
+    #gallery {
+      width: 100%;
+      max-width: 1100px;
+      height: 620px;
+      margin: 0;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.25);
+    }
+
+    #gallery img {
+      max-width: 94%;
+      max-height: 94%;
+      border-radius: 20px;
+      box-shadow: 0 24px 50px rgba(0, 0, 0, 0.35);
+    }
+
+    .ctrls.toolbar {
+      position: absolute;
+      left: 50%;
+      bottom: 8px;
+      transform: translateX(-50%);
+      display: inline-flex;
+      gap: 12px;
+      padding: 10px 16px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(16px);
+    }
+
+    .ctrls .ctrl-btn {
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text);
+      padding: 8px 12px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+
+    .ctrls .ctrl-btn:hover {
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    .ctrls .ctrl-btn.danger {
+      color: #ff453a;
+      border-color: rgba(255, 69, 58, 0.4);
+    }
+
+    .history {
+      margin: 0;
+    }
+
+    .history-header {
+      margin-bottom: 18px;
+    }
+
+    .history-title {
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    .history-clear {
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    .history-grid {
+      display: flex;
+      gap: 16px;
+      overflow-x: auto;
+      padding-bottom: 8px;
+    }
+
+    .history-card {
+      min-width: 260px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 12px;
+    }
+
+    .history-keyword,
+    .history-count {
+      color: var(--text);
+    }
+
+    .history-meta {
+      color: var(--muted);
+    }
+
+    .history-restore {
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      font-weight: 500;
+    }
+
+    .catalog-wrapper {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: none;
+    }
+
+    .catalog-btn {
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text);
+    }
+
+    .catalog-btn.active {
+      background: rgba(255, 255, 255, 0.18);
+      border-color: rgba(255, 255, 255, 0.2);
+      color: var(--text);
+      box-shadow: none;
+    }
+
+    .session {
+      margin: 0;
+    }
+
+    .session-title {
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    .session-qr {
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .session-meta {
+      color: var(--muted);
+    }
+
+    .session-code {
+      color: var(--accent);
+    }
+
+    .session-link a {
+      color: var(--accent-2);
+    }
+
+    .settings-title,
+    .settings-row label,
+    .refine-actions input {
+      color: var(--text);
+    }
+
+    .refine-actions input,
+    .settings-row select,
+    .settings-row input {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      color: var(--text);
+    }
+
+    .presenter-activity {
+      background: rgba(15, 15, 17, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--text);
+    }
+
+    .fade-up {
+      opacity: 0;
+      transform: translateY(4px);
+      animation: fadeUp 0.4s ease forwards;
+    }
+
+    @keyframes fadeUp {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 900px) {
+      .command-row {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .topbar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+      }
+
+      .app-shell {
+        padding: 32px 20px 100px;
+      }
+
+      #gallery {
+        height: 420px;
+      }
+
+      .ctrls.toolbar {
+        position: static;
+        transform: none;
+        justify-content: space-between;
+      }
+    }
+
   </style>
 </head>
 
 <body>
 
-  <div class="view-toggle">
-    <button id="view-weather" class="active">Weather</button>
-    <button id="view-app">Gallery</button>
-  </div>
+  <header class="topbar">
+    <div class="brand">VISTA</div>
+    <div class="view-toggle">
+      <button id="view-weather" class="active">Weather</button>
+      <button id="view-app">Gallery</button>
+    </div>
+  </header>
   <div id="presenter-activity" class="presenter-activity" aria-live="polite">
     <div class="presenter-activity-spinner" aria-hidden="true">
       <span></span><span></span><span></span>
@@ -886,9 +1257,31 @@
   </section>
 
   <div id="app-view" class="app-view view-hidden">
-  <h1>VISTA — Image Library + AI</h1>
+  <div class="app-shell">
+    <section class="command-panel glass-panel fade-up">
+      <div class="panel-title">Search or generate</div>
+      <div class="command-row">
+        <input id="unified-prompt" type="text" placeholder="Search or generate..." />
+        <select id="unified-mode">
+          <option value="search" selected>Search</option>
+          <option value="generate">Generate</option>
+        </select>
+        <select id="unified-source">
+          <option value="unsplash" selected>Unsplash</option>
+          <option value="pexels">Pexels</option>
+        </select>
+        <select id="unified-ratio">
+          <option value="1:1" selected>1:1</option>
+          <option value="4:3">4:3</option>
+          <option value="16:9">16:9</option>
+          <option value="3:4">3:4</option>
+          <option value="9:16">9:16</option>
+        </select>
+        <button class="primary" id="unified-submit">Go</button>
+      </div>
+    </section>
 
-  <div class="control-panels">
+    <div class="control-panels legacy-panels">
     <div class="panel">
       <div class="panel-title">Search library</div>
       <div class="panel-row">
@@ -931,23 +1324,24 @@
     </div>
   </div>
 
-  <div id="status"></div>
+  <div id="status" class="status-text"></div>
 
-  <div id="gallery"><p>Try searching or generating!</p></div>
+  <section class="gallery-shell fade-up">
+    <div id="gallery"><p>Try searching or generating!</p></div>
+    <div class="ctrls toolbar">
+      <button class="ctrl-btn" onclick="startSlideshow()">▶︎</button>
+      <button class="ctrl-btn" onclick="stopSlideshow()">⏸</button>
+      <button class="ctrl-btn" onclick="toggleFullscreen()">⛶</button>
+      <button class="ctrl-btn" onclick="downloadCurrent()">↓</button>
+      <button class="ctrl-btn danger" onclick="clearGallery()">✕</button>
+    </div>
+  </section>
 
   <div class="catalog-wrapper" id="catalog-wrapper" style="display:none;">
     <div class="catalog" id="catalog"></div>
   </div>
 
-  <div class="ctrls">
-    <button class="ctrl-btn" onclick="startSlideshow()">▶ Play</button>
-    <button class="ctrl-btn secondary" onclick="stopSlideshow()">⏹ Stop</button>
-    <button class="ctrl-btn secondary" onclick="toggleFullscreen()">⛶ Fullscreen</button>
-    <button class="ctrl-btn secondary" onclick="downloadCurrent()">⬇ Download</button>
-    <button class="ctrl-btn danger" onclick="clearGallery()">Clear</button>
-  </div>
-
-  <div class="settings" id="settings">
+  <div class="settings glass-panel fade-up" id="settings">
     <div class="settings-title">Playback settings</div>
     <div class="settings-row">
       <label for="speed-select">Speed</label>
@@ -962,7 +1356,7 @@
     </div>
   </div>
 
-  <div class="refine" id="refine">
+  <div class="refine glass-panel fade-up" id="refine">
     <div class="settings-title">Refine image (Flux Kontext)</div>
     <div class="refine-actions">
       <input id="refine-prompt" type="text" placeholder="Describe how to edit the current image..." />
@@ -985,7 +1379,7 @@
     </div>
   </div>
 
-  <div class="history" id="history">
+  <div class="history glass-panel fade-up" id="history">
     <div class="history-header">
       <div class="history-title">Result history</div>
       <button class="history-clear" onclick="clearHistory()">Clear history</button>
@@ -993,7 +1387,7 @@
     <div class="history-grid" id="history-grid"></div>
   </div>
 
-  <div class="session" id="sessionBox">
+  <div class="session glass-panel fade-up" id="sessionBox">
     <div class="session-title">Remote control</div>
     <div class="session-grid">
       <img class="session-qr" id="session-qr" alt="QR code" />
@@ -1010,6 +1404,7 @@
     <div class="sketch"></div>
     <p id="loading-text">Creating your image...</p>
     <img id="unsplash-preview" />
+  </div>
   </div>
 
   </div>
@@ -1989,6 +2384,61 @@ function onModeChange() {
   // Placeholder for history restore/remote sync.
 }
 
+function syncUnifiedMode() {
+  const modeSelect = document.getElementById("unified-mode");
+  const sourceSelect = document.getElementById("unified-source");
+  if (!modeSelect || !sourceSelect) return;
+  const isSearch = modeSelect.value === "search";
+  sourceSelect.disabled = !isSearch;
+  sourceSelect.style.display = isSearch ? "block" : "none";
+}
+
+function submitUnified() {
+  const promptInput = document.getElementById("unified-prompt");
+  const modeSelect = document.getElementById("unified-mode");
+  const sourceSelect = document.getElementById("unified-source");
+  const ratioSelect = document.getElementById("unified-ratio");
+  if (!promptInput || !modeSelect) return;
+  const prompt = promptInput.value.trim();
+  const ratio = ratioSelect ? ratioSelect.value : "1:1";
+  if (!prompt) {
+    setStatus("Please enter a prompt.");
+    return;
+  }
+
+  if (modeSelect.value === "search") {
+    const searchInput = document.getElementById("search-keyword");
+    const mode = document.getElementById("mode");
+    const libraryRatio = document.getElementById("library-ratio");
+    if (searchInput) searchInput.value = prompt;
+    if (mode && sourceSelect) mode.value = sourceSelect.value;
+    if (libraryRatio) libraryRatio.value = ratio;
+    searchLibrary();
+    return;
+  }
+
+  const aiPrompt = document.getElementById("ai-prompt");
+  const aiSize = document.getElementById("ai-size");
+  const aiCount = document.getElementById("ai-count");
+  if (aiPrompt) aiPrompt.value = prompt;
+  if (aiSize) aiSize.value = ratio;
+  if (aiCount && !aiCount.value) aiCount.value = "3";
+  generateAi();
+}
+
+function initUnifiedControls() {
+  const unifiedSource = document.getElementById("unified-source");
+  const unifiedRatio = document.getElementById("unified-ratio");
+  const unifiedPrompt = document.getElementById("unified-prompt");
+  const mode = document.getElementById("mode");
+  const libraryRatio = document.getElementById("library-ratio");
+  const searchInput = document.getElementById("search-keyword");
+  if (unifiedSource && mode) unifiedSource.value = mode.value;
+  if (unifiedRatio && libraryRatio) unifiedRatio.value = libraryRatio.value;
+  if (unifiedPrompt && searchInput) unifiedPrompt.value = searchInput.value || "";
+  syncUnifiedMode();
+}
+
 async function searchLibrary() {
   stopSlideshow();
 
@@ -2167,6 +2617,7 @@ renderHistory();
 initSession();
 initWeather();
 initViewToggle();
+initUnifiedControls();
 initAgentBubble();
 initAgentVoice();
 resetAgentLog();
@@ -2200,6 +2651,20 @@ if (autoplayToggle) {
     }
   });
 }
+
+const unifiedSubmit = document.getElementById("unified-submit");
+const unifiedPrompt = document.getElementById("unified-prompt");
+const unifiedMode = document.getElementById("unified-mode");
+if (unifiedSubmit) unifiedSubmit.addEventListener("click", submitUnified);
+if (unifiedPrompt) {
+  unifiedPrompt.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      submitUnified();
+    }
+  });
+}
+if (unifiedMode) unifiedMode.addEventListener("change", syncUnifiedMode);
 
 function updateRefineStatus(msg) {
   const el = document.getElementById("refine-status");

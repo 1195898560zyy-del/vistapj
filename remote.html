@@ -8,15 +8,16 @@
       @import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap");
 
       :root {
-        --bg-1: #f5f7fb;
-        --bg-2: #eef2f7;
-        --accent: #1d4ed8;
-        --accent-2: #0ea5e9;
-        --card: rgba(255, 255, 255, 0.92);
-        --border: rgba(148, 163, 184, 0.35);
-        --text: #0f172a;
-        --muted: #5b6474;
-        --danger: #dc2626;
+        --bg-1: #1c1c1e;
+        --bg-2: #0f0f11;
+        --accent: #0a84ff;
+        --accent-2: #64d2ff;
+        --card: rgba(255, 255, 255, 0.04);
+        --border: rgba(255, 255, 255, 0.06);
+        --text: #f5f5f7;
+        --muted: #9aa0a6;
+        --danger: #ff453a;
+        --success: #32d74b;
       }
 
       * {
@@ -25,10 +26,12 @@
 
       body {
         margin: 0;
-        font-family: "Space Grotesk", "Segoe UI", sans-serif;
-        background:
-          radial-gradient(circle at top, rgba(29, 78, 216, 0.08), transparent 55%),
-          linear-gradient(160deg, var(--bg-1) 0%, var(--bg-2) 100%);
+        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", sans-serif;
+        background: radial-gradient(
+          circle at 30% 20%,
+          var(--bg-1),
+          var(--bg-2) 60%
+        );
         color: var(--text);
         min-height: 100vh;
       }
@@ -36,42 +39,55 @@
       .container {
         max-width: 620px;
         margin: 0 auto;
-        padding: 18px 16px 32px;
+        padding: 24px 20px 48px;
         display: grid;
-        gap: 16px;
+        gap: 32px;
       }
 
       .header {
         display: grid;
-        gap: 8px;
-        padding: 16px;
-        border-radius: 16px;
+        gap: 10px;
+        padding: 20px;
+        border-radius: 20px;
         background: var(--card);
         border: 1px solid var(--border);
-        backdrop-filter: blur(8px);
+        backdrop-filter: blur(20px);
+        animation: fadeUp 0.4s ease forwards;
       }
 
       .title {
         font-size: 22px;
-        font-weight: 700;
-        letter-spacing: 0.4px;
+        font-weight: 600;
+        letter-spacing: 0.3px;
       }
 
       .status {
         display: flex;
         flex-wrap: wrap;
-        gap: 8px 12px;
-        font-size: 14px;
+        gap: 12px 16px;
+        font-size: 13px;
         color: var(--muted);
         align-items: center;
       }
 
-      .pill {
-        padding: 4px 10px;
-        border-radius: 999px;
-        background: rgba(29, 78, 216, 0.12);
-        color: var(--text);
-        font-size: 12px;
+      .status-line {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--muted);
+      }
+
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--danger);
+        box-shadow: 0 0 0 4px rgba(255, 69, 58, 0.15);
+      }
+
+      .status-dot.connected {
+        background: var(--success);
+        box-shadow: 0 0 0 4px rgba(50, 215, 75, 0.18);
       }
 
       .work-indicator {
@@ -92,30 +108,33 @@
         width: 12px;
         height: 12px;
         border-radius: 50%;
-        border: 2px solid rgba(148, 163, 184, 0.4);
+        border: 2px solid rgba(255, 255, 255, 0.2);
         border-top-color: var(--accent);
         animation: spin 0.8s linear infinite;
       }
 
       .chat-card {
-        padding: 16px;
-        border-radius: 18px;
+        padding: 20px;
+        border-radius: 24px;
         background: var(--card);
         border: 1px solid var(--border);
         display: grid;
-        gap: 12px;
+        gap: 20px;
         min-height: 70vh;
+        backdrop-filter: blur(20px);
+        animation: fadeUp 0.4s ease forwards;
+        animation-delay: 0.08s;
       }
 
       .remote-controls {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 12px;
-        padding: 12px;
-        border-radius: 14px;
-        background: rgba(255, 255, 255, 0.9);
-        border: 1px solid rgba(203, 213, 225, 0.7);
+        gap: 16px;
+        padding: 14px;
+        border-radius: 20px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.08);
       }
 
       .control-group {
@@ -125,30 +144,31 @@
       }
 
       .pill-button {
-        padding: 8px 12px;
-        border-radius: 999px;
-        background: rgba(29, 78, 216, 0.12);
+        padding: 10px 20px;
+        border-radius: 14px;
+        background: transparent;
         color: var(--text);
-        border: 1px solid rgba(29, 78, 216, 0.4);
-        font-size: 12px;
-        font-weight: 600;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        font-size: 13px;
+        font-weight: 500;
         cursor: pointer;
-        transition: transform 0.12s ease, box-shadow 0.2s ease;
+        transition: all 0.2s ease;
       }
 
-      .pill-button.secondary {
-        background: rgba(148, 163, 184, 0.14);
-        border-color: rgba(148, 163, 184, 0.4);
+      .pill-button.primary {
+        background: var(--accent);
+        border-color: transparent;
+        color: #fff;
+        box-shadow: 0 6px 20px rgba(10, 132, 255, 0.35);
       }
 
       .pill-button:hover:not(:disabled) {
-        transform: translateY(-1px);
-        box-shadow: 0 10px 20px rgba(29, 78, 216, 0.18);
+        background: rgba(255, 255, 255, 0.08);
       }
 
       .chat-log {
         display: grid;
-        gap: 10px;
+        gap: 14px;
         overflow-y: auto;
         padding-right: 6px;
         max-height: 56vh;
@@ -156,12 +176,11 @@
 
       .msg {
         max-width: 85%;
-        padding: 10px 12px;
-        border-radius: 14px;
-        background: rgba(248, 250, 252, 0.9);
-        border: 1px solid rgba(203, 213, 225, 0.8);
+        padding: 12px 16px;
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.06);
         font-size: 14px;
-        line-height: 1.45;
+        line-height: 1.5;
         word-break: break-word;
         overflow-wrap: anywhere;
         white-space: pre-wrap;
@@ -169,8 +188,7 @@
 
       .msg.user {
         justify-self: end;
-        background: rgba(29, 78, 216, 0.12);
-        border-color: rgba(29, 78, 216, 0.35);
+        background: rgba(255, 255, 255, 0.1);
       }
 
       .msg.agent {
@@ -193,9 +211,9 @@
       select {
         width: 100%;
         padding: 12px 14px;
-        border-radius: 12px;
-        border: 1px solid var(--border);
-        background: rgba(255, 255, 255, 0.95);
+        border-radius: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.04);
         color: var(--text);
         font-size: 14px;
       }
@@ -206,19 +224,19 @@
       }
 
       button {
-        padding: 12px 14px;
-        border-radius: 12px;
+        padding: 12px 18px;
+        border-radius: 14px;
         border: none;
-        background: var(--accent);
-        color: #f8fafc;
-        font-weight: 700;
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--text);
+        font-weight: 500;
         cursor: pointer;
-        transition: transform 0.12s ease, box-shadow 0.2s ease;
+        transition: all 0.2s ease;
         white-space: nowrap;
       }
 
       button.secondary {
-        background: rgba(148, 163, 184, 0.2);
+        background: rgba(255, 255, 255, 0.08);
         color: var(--text);
       }
 
@@ -229,8 +247,7 @@
       }
 
       button:hover:not(:disabled) {
-        transform: translateY(-1px);
-        box-shadow: 0 10px 24px rgba(29, 78, 216, 0.25);
+        background: rgba(255, 255, 255, 0.12);
       }
 
       .chat-status {
@@ -297,6 +314,11 @@
         color: var(--muted);
       }
 
+      @keyframes fadeUp {
+        from { transform: translateY(4px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+      }
+
       @media (max-width: 560px) {
         .remote-controls {
           flex-direction: column;
@@ -322,7 +344,10 @@
       <div class="header">
         <div class="title">VISTA Remote</div>
         <div class="status">
-          <span class="pill" id="conn-pill">Connecting...</span>
+          <span class="status-line">
+            <span class="status-dot" id="conn-dot"></span>
+            <span id="conn-text">Connecting...</span>
+          </span>
           <span>Session: <span id="session-id">—</span></span>
           <span class="work-indicator" id="remote-working">
             <span class="work-spinner" aria-hidden="true"></span>
@@ -335,9 +360,9 @@
       <section class="chat-card">
         <div class="remote-controls">
           <div class="control-group">
-            <button class="pill-button secondary" id="remote-prev" type="button">Prev</button>
-            <button class="pill-button" id="remote-play" type="button">Play</button>
-            <button class="pill-button secondary" id="remote-next" type="button">Next</button>
+            <button class="pill-button" id="remote-prev" type="button">Prev</button>
+            <button class="pill-button primary" id="remote-play" type="button">Play</button>
+            <button class="pill-button" id="remote-next" type="button">Next</button>
           </div>
           <div class="control-group">
             <button class="pill-button secondary" id="remote-view-weather" type="button">Weather</button>
@@ -375,7 +400,8 @@
       const API_BASE = "https://vista-backend-1-6r3t.onrender.com";
 
       const sessionIdEl = document.getElementById("session-id");
-      const connPill = document.getElementById("conn-pill");
+      const connDot = document.getElementById("conn-dot");
+      const connText = document.getElementById("conn-text");
       const notice = document.getElementById("notice");
       const chatLog = document.getElementById("chat-log");
       const chatInput = document.getElementById("chat-input");
@@ -413,10 +439,8 @@
       }
 
       function setConnection(ok, text) {
-        connPill.textContent = text;
-        connPill.style.background = ok
-          ? "rgba(34, 197, 94, 0.2)"
-          : "rgba(244, 63, 94, 0.2)";
+        if (connText) connText.textContent = text;
+        if (connDot) connDot.classList.toggle("connected", ok);
       }
 
       function setStatus(text) {
