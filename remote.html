@@ -74,6 +74,29 @@
         font-size: 12px;
       }
 
+      .work-indicator {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: var(--muted);
+        opacity: 0;
+        transition: opacity 0.2s ease;
+      }
+
+      .work-indicator.visible {
+        opacity: 1;
+      }
+
+      .work-spinner {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        border: 2px solid rgba(248, 250, 252, 0.25);
+        border-top-color: var(--accent);
+        animation: spin 0.8s linear infinite;
+      }
+
       .chat-card {
         padding: 16px;
         border-radius: 18px;
@@ -264,6 +287,11 @@
         40% { transform: translateY(-3px); opacity: 1; }
       }
 
+      @keyframes spin {
+        from { transform: rotate(0); }
+        to { transform: rotate(360deg); }
+      }
+
       .notice {
         font-size: 12px;
         color: var(--muted);
@@ -296,6 +324,10 @@
         <div class="status">
           <span class="pill" id="conn-pill">Connecting...</span>
           <span>Session: <span id="session-id">—</span></span>
+          <span class="work-indicator" id="remote-working">
+            <span class="work-spinner" aria-hidden="true"></span>
+            Working
+          </span>
         </div>
         <div class="notice" id="notice">Chat with the agent to control the presenter.</div>
       </div>
@@ -352,6 +384,7 @@
       const chatRatio = document.getElementById("chat-ratio");
       const chatWorking = document.getElementById("chat-working");
       const chatStatus = document.getElementById("chat-status");
+      const remoteWorking = document.getElementById("remote-working");
       const remotePlay = document.getElementById("remote-play");
       const remotePrev = document.getElementById("remote-prev");
       const remoteNext = document.getElementById("remote-next");
@@ -363,6 +396,21 @@
       let recorder = null;
       let recording = false;
       let recordingChunks = [];
+      let workingCount = 0;
+
+      function showRemoteWorking() {
+        if (!remoteWorking) return;
+        workingCount += 1;
+        remoteWorking.classList.add("visible");
+      }
+
+      function hideRemoteWorking() {
+        if (!remoteWorking) return;
+        workingCount = Math.max(0, workingCount - 1);
+        if (workingCount === 0) {
+          remoteWorking.classList.remove("visible");
+        }
+      }
 
       function setConnection(ok, text) {
         connPill.textContent = text;
@@ -417,6 +465,7 @@
           return;
         }
         try {
+          showRemoteWorking();
           const res = await fetch(`${API_BASE}/api/cmd`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -436,6 +485,8 @@
         } catch (err) {
           setConnection(false, "Reconnecting...");
           setStatus("Network error");
+        } finally {
+          hideRemoteWorking();
         }
       }
 
@@ -482,6 +533,7 @@
         setStatus("Thinking...");
         chatSend.disabled = true;
         if (chatWorking) chatWorking.classList.add("visible");
+        showRemoteWorking();
 
         try {
           const res = await fetch(`${API_BASE}/api/agent`, {
@@ -519,6 +571,7 @@
         } finally {
           chatSend.disabled = false;
           if (chatWorking) chatWorking.classList.remove("visible");
+          hideRemoteWorking();
         }
       }
 
@@ -612,6 +665,7 @@
 
       async function transcribeAudio(base64, mime) {
         try {
+          showRemoteWorking();
           const res = await fetch(`${API_BASE}/api/transcribe`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -629,6 +683,8 @@
           }
         } catch (err) {
           setStatus(`Mic error: ${err.message}`);
+        } finally {
+          hideRemoteWorking();
         }
       }
 
