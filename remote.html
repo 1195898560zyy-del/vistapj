@@ -120,12 +120,13 @@
 
       .chat-row {
         display: grid;
-        grid-template-columns: auto 1fr auto;
+        grid-template-columns: auto auto 1fr auto;
         gap: 10px;
         align-items: center;
       }
 
-      input {
+      input,
+      select {
         width: 100%;
         padding: 12px 14px;
         border-radius: 12px;
@@ -201,6 +202,13 @@
         <div class="chat-input">
           <div class="chat-row">
             <button class="secondary" id="chat-mic" type="button">Mic</button>
+            <select id="chat-ratio" aria-label="Aspect ratio">
+              <option value="1:1" selected>1:1</option>
+              <option value="4:3">4:3</option>
+              <option value="16:9">16:9</option>
+              <option value="3:4">3:4</option>
+              <option value="9:16">9:16</option>
+            </select>
             <input id="chat-input" type="text" placeholder="Ask the agent to search, generate, refine..." />
             <button id="chat-send" type="button">Send</button>
           </div>
@@ -219,6 +227,7 @@
       const chatInput = document.getElementById("chat-input");
       const chatSend = document.getElementById("chat-send");
       const chatMic = document.getElementById("chat-mic");
+      const chatRatio = document.getElementById("chat-ratio");
       const chatStatus = document.getElementById("chat-status");
 
       let sessionId = null;
@@ -337,7 +346,10 @@
             body: JSON.stringify({
               message: raw,
               summary: buildSummary(),
-              state: { remote: true }
+              state: {
+                remote: true,
+                preferred_ratio: chatRatio ? chatRatio.value : "1:1"
+              }
             })
           });
           const data = await res.json();
