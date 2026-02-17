@@ -414,6 +414,25 @@
       cursor: pointer;
       box-shadow: 0 12px 30px rgba(15, 23, 42, 0.35);
       backdrop-filter: blur(8px);
+      animation: bubbleFloat 6s ease-in-out infinite;
+    }
+
+    .agent-bubble {
+      cursor: grab;
+    }
+
+    .agent-bubble:active {
+      cursor: grabbing;
+    }
+
+    .agent-fab.dragging .agent-bubble {
+      animation: none;
+    }
+
+    @keyframes bubbleFloat {
+      0% { transform: translate3d(0, 0, 0); }
+      50% { transform: translate3d(-6px, -8px, 0); }
+      100% { transform: translate3d(0, 0, 0); }
     }
 
     .agent-panel {
@@ -426,36 +445,13 @@
       display: none;
       grid-template-rows: auto 1fr auto;
       gap: 10px;
+      overflow: hidden;
     }
 
     .agent-fab.open .agent-panel {
       display: grid;
     }
 
-    .agent-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .agent-title {
-      font-size: 12px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.6px;
-      color: #0f172a;
-    }
-
-    .agent-close {
-      border: none;
-      background: #e2e8f0;
-      color: #1f2937;
-      border-radius: 999px;
-      padding: 4px 10px;
-      cursor: pointer;
-      font-size: 11px;
-    }
 
     .agent-log {
       border: 1px solid #e2e8f0;
@@ -464,7 +460,8 @@
       padding: 10px;
       min-height: 120px;
       max-height: 260px;
-      overflow: auto;
+      overflow-y: auto;
+      overflow-x: hidden;
       display: grid;
       gap: 8px;
     }
@@ -474,6 +471,9 @@
       gap: 2px;
       font-size: 13px;
       color: #1f2937;
+      word-break: break-word;
+      overflow-wrap: anywhere;
+      white-space: pre-wrap;
     }
 
     .agent-msg strong {
@@ -497,6 +497,7 @@
     .agent-status {
       font-size: 12px;
       color: #64748b;
+      text-align: right;
     }
 
     .agent-fab.right .agent-panel {
@@ -903,16 +904,11 @@
   <div class="agent-fab right" id="agent-fab">
     <button class="agent-bubble" id="agent-bubble">AI</button>
     <div class="agent-panel" id="agent-panel">
-      <div class="agent-header">
-        <div class="agent-title">Agent</div>
-        <div class="agent-status" id="agent-status">Ready.</div>
-        <button class="agent-close" id="agent-close">Close</button>
-      </div>
-      <div class="agent-log" id="agent-log"></div>
       <div class="agent-input">
         <input id="agent-input" type="text" placeholder="Ask the agent to search, generate, or refine..." />
         <button class="primary" id="agent-send">Send</button>
       </div>
+      <div class="agent-status" id="agent-status">Ready.</div>
     </div>
   </div>
 
@@ -1032,7 +1028,6 @@ const FRONTEND_BASE = "https://1195898560zyy-del.github.io/vistapj";
 const WEATHER_CACHE_KEY = "vista_weather_cache_v1";
 const WEATHER_TTL = 10 * 60 * 1000;
 const WEATHER_ROTATE_MS = 12000;
-const AGENT_HISTORY_KEY = "vista_agent_history_v1";
 
 let slideIndex = 0;
 let slideTimer = null;
@@ -1046,6 +1041,7 @@ let totalPages = 1;
 let sessionID = null;
 let sessionCode = null;
 let sessionPoll = null;
+let agentLog = [];
 
 const HISTORY_KEY = "vista_result_history_v1";
 const HISTORY_LIMIT = 5;
@@ -1060,17 +1056,11 @@ function setStatus(msg) {
 }
 
 function getAgentLog() {
-  try {
-    const raw = localStorage.getItem(AGENT_HISTORY_KEY);
-    const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch (err) {
-    return [];
-  }
+  return agentLog;
 }
 
 function saveAgentLog(items) {
-  localStorage.setItem(AGENT_HISTORY_KEY, JSON.stringify(items.slice(-20)));
+  agentLog = items.slice(-20);
 }
 
 function appendAgentMessage(role, content) {
@@ -1093,12 +1083,14 @@ function renderAgentLog() {
     return;
   }
   items.forEach((item) => {
+    const cleaned = sanitizeAgentReply(item.content || "");
+    if (!cleaned) return;
     const row = document.createElement("div");
     row.className = "agent-msg";
     const label = document.createElement("strong");
     label.textContent = item.role === "assistant" ? "Agent" : "You";
     const text = document.createElement("div");
-    text.textContent = item.content;
+    text.textContent = cleaned;
     row.appendChild(label);
     row.appendChild(text);
     logEl.appendChild(row);
@@ -1109,6 +1101,12 @@ function renderAgentLog() {
 function setAgentStatus(text) {
   const el = document.getElementById("agent-status");
   if (el) el.textContent = text;
+}
+
+function clearAgentLog() {
+  agentLog = [];
+  const logEl = document.getElementById("agent-log");
+  if (logEl) logEl.innerHTML = "";
 }
 
 function buildAgentSummary() {
@@ -1937,6 +1935,7 @@ initSession();
 initWeather();
 initViewToggle();
 initAgentBubble();
+clearAgentLog();
 renderAgentLog();
 
 const speedSelect = document.getElementById("speed-select");
@@ -2043,10 +2042,11 @@ async function sendAgentMessage() {
   const input = document.getElementById("agent-input");
   const button = document.getElementById("agent-send");
   if (!input) return;
-  const text = input.value.trim();
-  if (!text) return;
+  const rawText = input.value.trim();
+  if (!rawText) return;
+  const text = normalizeAgentMessage(rawText);
 
-  appendAgentMessage("user", text);
+  appendAgentMessage("user", rawText);
   input.value = "";
   setAgentStatus("Thinking...");
   if (button) button.disabled = true;
@@ -2068,8 +2068,10 @@ async function sendAgentMessage() {
     if (data.tool && data.result) {
       applyAgentResult(data.tool, data.result, data.tool_args || {}, text);
     }
-    if (data.reply) {
-      appendAgentMessage("assistant", data.reply);
+    if (data.tool) {
+      appendAgentMessage("assistant", buildAgentAck(data.tool));
+    } else if (data.reply) {
+      appendAgentMessage("assistant", sanitizeAgentReply(data.reply));
     }
     setAgentStatus("Ready.");
   } catch (err) {
@@ -2078,6 +2080,25 @@ async function sendAgentMessage() {
   } finally {
     if (button) button.disabled = false;
   }
+}
+
+function sanitizeAgentReply(text) {
+  if (!text) return "";
+  let cleaned = text.replace(/!\[[^\]]*?\]\([^)]+?\)/g, "");
+  cleaned = cleaned.replace(/https?:\/\/\S+/g, "");
+  cleaned = cleaned.replace(/\s{2,}/g, " ").trim();
+  return cleaned || "Got it.";
+}
+
+function buildAgentAck(tool) {
+  if (tool === "search_library") return "Search done. Gallery updated.";
+  if (tool === "generate_ai") return "Generated. Gallery updated.";
+  if (tool === "refine_image") return "Refine done. Gallery updated.";
+  return "Done.";
+}
+
+function normalizeAgentMessage(text) {
+  return text.replace(/\bpiexl\b/gi, "pexels").replace(/\bpexel\b/gi, "pexels");
 }
 
 function applyAgentResult(tool, result, args, fallbackText) {
@@ -2166,10 +2187,10 @@ function initViewToggle() {
 function initAgentBubble() {
   const fab = document.getElementById("agent-fab");
   const bubble = document.getElementById("agent-bubble");
-  const closeBtn = document.getElementById("agent-close");
   if (!fab || !bubble) return;
 
   const POS_KEY = "vista_agent_pos_v1";
+  const canHover = window.matchMedia && window.matchMedia("(hover: hover) and (pointer: fine)").matches;
   let drag = { active: false, moved: false, startX: 0, startY: 0, x: 0, y: 0 };
 
   function clamp(value, min, max) {
@@ -2217,6 +2238,7 @@ function initAgentBubble() {
     drag.moved = false;
     drag.startX = e.clientX - drag.x;
     drag.startY = e.clientY - drag.y;
+    fab.classList.add("dragging");
     bubble.setPointerCapture(e.pointerId);
   });
 
@@ -2234,15 +2256,19 @@ function initAgentBubble() {
     if (!drag.active) return;
     drag.active = false;
     bubble.releasePointerCapture(e.pointerId);
+    fab.classList.remove("dragging");
     snap();
-    if (!drag.moved) {
+    if (!drag.moved && e.pointerType === "touch") {
       fab.classList.toggle("open");
     }
   });
 
-  if (closeBtn) {
-    closeBtn.addEventListener("click", () => {
-      fab.classList.remove("open");
+  if (canHover) {
+    fab.addEventListener("mouseenter", () => {
+      if (!drag.active) fab.classList.add("open");
+    });
+    fab.addEventListener("mouseleave", () => {
+      if (!drag.active) fab.classList.remove("open");
     });
   }
 
