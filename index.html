@@ -2290,6 +2290,7 @@ async function sendAgentMessage() {
   appendAgentMessage("user", rawText);
   input.value = "";
   setAgentStatus("Thinking...");
+  showPresenterActivity("Agent working...");
   if (button) button.disabled = true;
 
   try {
@@ -2329,6 +2330,7 @@ async function sendAgentMessage() {
     setAgentStatus("Error");
   } finally {
     if (button) button.disabled = false;
+    hidePresenterActivity();
   }
 }
 

@@ -175,6 +175,54 @@
         text-align: right;
       }
 
+      .chat-status-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .chat-working {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: var(--muted);
+        opacity: 0;
+        transition: opacity 0.2s ease;
+      }
+
+      .chat-working.visible {
+        opacity: 1;
+      }
+
+      .chat-working-dots {
+        display: inline-flex;
+        gap: 4px;
+      }
+
+      .chat-working-dots span {
+        width: 5px;
+        height: 5px;
+        border-radius: 999px;
+        background: var(--accent);
+        opacity: 0.4;
+        animation: workingPulse 1s infinite ease-in-out;
+      }
+
+      .chat-working-dots span:nth-child(2) {
+        animation-delay: 0.15s;
+      }
+
+      .chat-working-dots span:nth-child(3) {
+        animation-delay: 0.3s;
+      }
+
+      @keyframes workingPulse {
+        0%, 80%, 100% { transform: translateY(0); opacity: 0.35; }
+        40% { transform: translateY(-3px); opacity: 1; }
+      }
+
       .notice {
         font-size: 12px;
         color: var(--muted);
@@ -221,7 +269,15 @@
             <input id="chat-input" type="text" placeholder="Ask the agent to search, generate, refine..." />
             <button id="chat-send" type="button">Send</button>
           </div>
-          <div class="chat-status" id="chat-status">Ready.</div>
+          <div class="chat-status-row">
+            <div class="chat-working" id="chat-working">
+              <div class="chat-working-dots" aria-hidden="true">
+                <span></span><span></span><span></span>
+              </div>
+              Working...
+            </div>
+            <div class="chat-status" id="chat-status">Ready.</div>
+          </div>
         </div>
       </section>
     </main>
@@ -237,6 +293,7 @@
       const chatSend = document.getElementById("chat-send");
       const chatMic = document.getElementById("chat-mic");
       const chatRatio = document.getElementById("chat-ratio");
+      const chatWorking = document.getElementById("chat-working");
       const chatStatus = document.getElementById("chat-status");
 
       let sessionId = null;
@@ -347,6 +404,7 @@
         appendMessage("user", raw);
         setStatus("Thinking...");
         chatSend.disabled = true;
+        if (chatWorking) chatWorking.classList.add("visible");
 
         try {
           const res = await fetch(`${API_BASE}/api/agent`, {
@@ -383,6 +441,7 @@
           setStatus("Error");
         } finally {
           chatSend.disabled = false;
+          if (chatWorking) chatWorking.classList.remove("visible");
         }
       }
 
