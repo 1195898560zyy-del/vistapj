@@ -8,8 +8,8 @@
       @import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap");
 
       :root {
-        --bg-1: #0f172a;
-        --bg-2: #1e293b;
+        --bg-1: #0b1220;
+        --bg-2: #111827;
         --accent: #38bdf8;
         --accent-2: #22c55e;
         --card: rgba(255, 255, 255, 0.08);
@@ -32,16 +32,15 @@
       }
 
       .container {
-        max-width: 540px;
+        max-width: 620px;
         margin: 0 auto;
-        padding: 20px 16px 32px;
+        padding: 18px 16px 32px;
         display: grid;
         gap: 16px;
       }
 
       .header {
-        display: flex;
-        flex-direction: column;
+        display: grid;
         gap: 8px;
         padding: 16px;
         border-radius: 16px;
@@ -62,6 +61,7 @@
         gap: 8px 12px;
         font-size: 14px;
         color: var(--muted);
+        align-items: center;
       }
 
       .pill {
@@ -72,34 +72,60 @@
         font-size: 12px;
       }
 
-      .section {
+      .chat-card {
         padding: 16px;
-        border-radius: 16px;
+        border-radius: 18px;
         background: var(--card);
         border: 1px solid var(--border);
         display: grid;
         gap: 12px;
+        min-height: 70vh;
       }
 
-      .section-title {
+      .chat-log {
+        display: grid;
+        gap: 10px;
+        overflow-y: auto;
+        padding-right: 6px;
+        max-height: 56vh;
+      }
+
+      .msg {
+        max-width: 85%;
+        padding: 10px 12px;
+        border-radius: 14px;
+        background: rgba(15, 23, 42, 0.55);
+        border: 1px solid rgba(148, 163, 184, 0.2);
         font-size: 14px;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        color: var(--muted);
+        line-height: 1.45;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+        white-space: pre-wrap;
       }
 
-      .row {
+      .msg.user {
+        justify-self: end;
+        background: rgba(56, 189, 248, 0.2);
+        border-color: rgba(56, 189, 248, 0.4);
+      }
+
+      .msg.agent {
+        justify-self: start;
+      }
+
+      .chat-input {
         display: grid;
         gap: 10px;
       }
 
-      label {
-        font-size: 13px;
-        color: var(--muted);
+      .chat-row {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        gap: 10px;
+        align-items: center;
       }
 
-      input,
-      select {
+      input {
         width: 100%;
         padding: 12px 14px;
         border-radius: 12px;
@@ -109,78 +135,53 @@
         font-size: 14px;
       }
 
-      .btn {
+      button {
         padding: 12px 14px;
-        border-radius: 14px;
+        border-radius: 12px;
         border: none;
         background: var(--accent);
         color: #0f172a;
         font-weight: 700;
         cursor: pointer;
         transition: transform 0.12s ease, box-shadow 0.2s ease;
+        white-space: nowrap;
       }
 
-      .btn:disabled {
+      button.secondary {
+        background: rgba(148, 163, 184, 0.2);
+        color: var(--text);
+      }
+
+      button:disabled {
         opacity: 0.6;
         cursor: not-allowed;
         box-shadow: none;
       }
 
-      .btn:hover:not(:disabled) {
+      button:hover:not(:disabled) {
         transform: translateY(-1px);
         box-shadow: 0 10px 24px rgba(56, 189, 248, 0.35);
       }
 
-      .btn.secondary {
-        background: rgba(148, 163, 184, 0.2);
-        color: var(--text);
-      }
-
-      .btn.danger {
-        background: var(--danger);
-        color: white;
-      }
-
-      .btn-group {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 10px;
-      }
-
-      .btn-grid {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 10px;
-      }
-
-      .history-chips {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-      }
-
-      .chip {
-        padding: 6px 10px;
-        border-radius: 999px;
-        background: rgba(148, 163, 184, 0.2);
+      .chat-status {
         font-size: 12px;
-        color: var(--text);
-        border: 1px solid transparent;
-        cursor: pointer;
-      }
-
-      .chip:hover {
-        border-color: var(--accent);
-      }
-
-      .command-status {
-        font-size: 13px;
         color: var(--muted);
+        text-align: right;
       }
 
       .notice {
-        font-size: 13px;
+        font-size: 12px;
         color: var(--muted);
+      }
+
+      @media (max-width: 560px) {
+        .chat-row {
+          grid-template-columns: 1fr;
+        }
+
+        button {
+          width: 100%;
+        }
       }
     </style>
   </head>
@@ -192,83 +193,39 @@
           <span class="pill" id="conn-pill">Connecting...</span>
           <span>Session: <span id="session-id">—</span></span>
         </div>
+        <div class="notice" id="notice">Chat with the agent to control the presenter.</div>
       </div>
 
-      <section class="section">
-        <div class="section-title">AI control</div>
-        <div class="row">
-          <label for="ai-prompt">Prompt</label>
-          <input id="ai-prompt" type="text" placeholder="Describe what to generate..." />
-        </div>
-        <div class="row">
-          <label for="ai-action">Action</label>
-          <select id="ai-action">
-            <option value="generate" selected>Generate</option>
-            <option value="refine">Refine current</option>
-          </select>
-        </div>
-        <div class="row">
-          <label for="ai-count">Count (1-5)</label>
-          <select id="ai-count">
-            <option value="1">1</option>
-            <option value="2">2</option>
-            <option value="3" selected>3</option>
-            <option value="4">4</option>
-            <option value="5">5</option>
-          </select>
-        </div>
-        <div class="row">
-          <label for="ai-size">Aspect ratio</label>
-          <select id="ai-size">
-            <option value="1:1" selected>1:1</option>
-            <option value="4:3">4:3</option>
-            <option value="16:9">16:9</option>
-            <option value="3:4">3:4</option>
-            <option value="9:16">9:16</option>
-          </select>
-        </div>
-        <div class="row">
-          <button class="btn" id="ai-run">Run</button>
+      <section class="chat-card">
+        <div class="chat-log" id="chat-log"></div>
+        <div class="chat-input">
+          <div class="chat-row">
+            <button class="secondary" id="chat-mic" type="button">Mic</button>
+            <input id="chat-input" type="text" placeholder="Ask the agent to search, generate, refine..." />
+            <button id="chat-send" type="button">Send</button>
+          </div>
+          <div class="chat-status" id="chat-status">Ready.</div>
         </div>
       </section>
-
-      <section class="section">
-        <div class="section-title">Controls</div>
-        <div class="btn-grid">
-          <button class="btn secondary" id="prev">◀︎ Prev</button>
-          <button class="btn" id="play-toggle">▶︎ Play</button>
-          <button class="btn secondary" id="next">▶︎ Next</button>
-          <button class="btn danger" id="clear">🧹 Clear</button>
-        </div>
-        <div class="command-status" id="command-status">Ready.</div>
-        <div class="notice" id="notice"></div>
-      </section>
-
     </main>
 
     <script>
       const API_BASE = "https://vista-backend-1-6r3t.onrender.com";
-      const GENERATE_COOLDOWN = 30;
 
       const sessionIdEl = document.getElementById("session-id");
       const connPill = document.getElementById("conn-pill");
-      const commandStatus = document.getElementById("command-status");
       const notice = document.getElementById("notice");
-
-      const aiPrompt = document.getElementById("ai-prompt");
-      const aiAction = document.getElementById("ai-action");
-      const aiCount = document.getElementById("ai-count");
-      const aiSize = document.getElementById("ai-size");
-
-      const btnPlayToggle = document.getElementById("play-toggle");
-      const btnPrev = document.getElementById("prev");
-      const btnNext = document.getElementById("next");
-      const btnRunAi = document.getElementById("ai-run");
-      const btnClear = document.getElementById("clear");
+      const chatLog = document.getElementById("chat-log");
+      const chatInput = document.getElementById("chat-input");
+      const chatSend = document.getElementById("chat-send");
+      const chatMic = document.getElementById("chat-mic");
+      const chatStatus = document.getElementById("chat-status");
 
       let sessionId = null;
-      let cooldownTimer = null;
-      let isPlaying = false;
+      let messages = [];
+      let recorder = null;
+      let recording = false;
+      let recordingChunks = [];
 
       function setConnection(ok, text) {
         connPill.textContent = text;
@@ -277,17 +234,44 @@
           : "rgba(244, 63, 94, 0.2)";
       }
 
-      function setCommandStatus(text) {
-        commandStatus.textContent = text;
+      function setStatus(text) {
+        chatStatus.textContent = text;
+      }
+
+      function sanitize(text) {
+        if (!text) return "";
+        let cleaned = text.replace(/!\[[^\]]*?\]\([^)]+?\)/g, "");
+        cleaned = cleaned.replace(/\[[^\]]*?\]\((https?:\/\/[^)]+?)\)/g, "");
+        cleaned = cleaned.replace(/https?:\/\/\S+/g, "");
+        cleaned = cleaned.replace(/\S+\/\S*(crop=|ixid=|ixlib=|fm=|fit=)\S*/gi, "");
+        cleaned = cleaned
+          .split("\n")
+          .map((line) => line.trim())
+          .filter((line) => line && !/^[\d\-•]+\.?$/.test(line));
+        cleaned = cleaned.join("\n").replace(/\s{2,}/g, " ").trim();
+        return cleaned || "Got it.";
+      }
+
+      function appendMessage(role, text) {
+        const cleaned = sanitize(text || "");
+        if (!cleaned) return;
+        messages.push({ role, content: cleaned });
+        const bubble = document.createElement("div");
+        bubble.className = `msg ${role === "user" ? "user" : "agent"}`;
+        bubble.textContent = cleaned;
+        chatLog.appendChild(bubble);
+        chatLog.scrollTop = chatLog.scrollHeight;
+      }
+
+      function buildSummary() {
+        return messages.slice(-6).map((item) => `${item.role}: ${item.content}`).join(" | ");
       }
 
       async function sendCommand(type, payload = {}) {
         if (!sessionId) {
-          setCommandStatus("No session. Scan the QR code on the presenter.");
+          setStatus("No session. Scan the QR code on the presenter.");
           return;
         }
-
-        setCommandStatus("Sending...");
         try {
           const res = await fetch(`${API_BASE}/api/cmd`, {
             method: "POST",
@@ -300,99 +284,150 @@
           const data = await res.json();
           if (!res.ok) {
             setConnection(false, "Disconnected");
-            setCommandStatus(data.error || "Send failed");
+            setStatus(data.error || "Send failed");
             return;
           }
           setConnection(true, "Connected");
-          setCommandStatus("Sent ✓");
-          waitForExecuted(data.id);
+          setStatus("Sent ✓");
         } catch (err) {
           setConnection(false, "Reconnecting...");
-          setCommandStatus("Network error");
+          setStatus("Network error");
         }
       }
 
-      async function waitForExecuted(commandId) {
-        let attempts = 0;
-        const poll = async () => {
-          attempts += 1;
-          try {
-            const res = await fetch(
-              `${API_BASE}/api/status?session=${encodeURIComponent(sessionId)}&id=${encodeURIComponent(commandId)}`
-            );
-            const data = await res.json();
-            if (data.status === "executed") {
-              setCommandStatus("Executed ✓");
-              return;
+      function dispatchTool(tool, args) {
+        if (tool === "search_library") {
+          sendCommand("theme", {
+            keyword: args.query || "",
+            mode: args.source || "unsplash",
+            ratio: args.ratio || "1:1"
+          });
+        }
+        if (tool === "generate_ai") {
+          sendCommand("ai_generate", {
+            keyword: args.prompt || "",
+            mode: "flux",
+            count: args.count || 1,
+            size: args.aspect_ratio || "1:1"
+          });
+        }
+        if (tool === "refine_image") {
+          sendCommand("refine", { prompt: args.prompt || "" });
+        }
+      }
+
+      async function sendChat() {
+        const raw = chatInput.value.trim();
+        if (!raw) return;
+        chatInput.value = "";
+        appendMessage("user", raw);
+        setStatus("Thinking...");
+        chatSend.disabled = true;
+
+        try {
+          const res = await fetch(`${API_BASE}/api/agent`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              message: raw,
+              summary: buildSummary(),
+              state: { remote: true }
+            })
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            throw new Error(data.error || "Agent failed");
+          }
+
+          if (data.tool) {
+            dispatchTool(data.tool, data.tool_args || {});
+            appendMessage("assistant", "Done. Presenter updated.");
+          } else if (data.reply) {
+            appendMessage("assistant", data.reply);
+          }
+          setStatus("Ready.");
+        } catch (err) {
+          appendMessage("assistant", `Error: ${err.message}`);
+          setStatus("Error");
+        } finally {
+          chatSend.disabled = false;
+        }
+      }
+
+      async function startRecording() {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          chatMic.disabled = true;
+          chatMic.title = "Voice input not supported.";
+          return;
+        }
+        if (recording) return;
+        recordingChunks = [];
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          recorder = new MediaRecorder(stream);
+          recorder.ondataavailable = (event) => {
+            if (event.data && event.data.size > 0) {
+              recordingChunks.push(event.data);
             }
-          } catch (err) {
-            setCommandStatus("Waiting for ack...");
-          }
-          if (attempts < 12) {
-            setTimeout(poll, 500);
-          } else {
-            setCommandStatus("No ack yet");
-          }
-        };
-        poll();
+          };
+          recorder.onstop = async () => {
+            stream.getTracks().forEach((track) => track.stop());
+            const blob = new Blob(recordingChunks, { type: recorder.mimeType || "audio/webm" });
+            const base64 = await blobToBase64(blob);
+            await transcribeAudio(base64, blob.type);
+          };
+          recorder.start();
+          recording = true;
+          chatMic.classList.add("active");
+          chatMic.textContent = "Stop";
+          setStatus("Recording...");
+        } catch (err) {
+          setStatus("Mic error.");
+        }
       }
 
-      function startCooldown() {
-        let remaining = GENERATE_COOLDOWN;
-        btnRunAi.disabled = true;
-        btnRunAi.textContent = `${remaining}s`;
-        cooldownTimer = setInterval(() => {
-          remaining -= 1;
-          btnRunAi.textContent = `${remaining}s`;
-          if (remaining <= 0) {
-            clearInterval(cooldownTimer);
-            btnRunAi.disabled = false;
-            btnRunAi.textContent = "Run";
-          }
-        }, 1000);
+      function stopRecording() {
+        if (!recorder || !recording) return;
+        recorder.stop();
+        recording = false;
+        chatMic.classList.remove("active");
+        chatMic.textContent = "Mic";
+        setStatus("Transcribing...");
       }
 
-      btnPlayToggle.addEventListener("click", () => {
-        if (isPlaying) {
-          sendCommand("pause");
-          isPlaying = false;
-          btnPlayToggle.textContent = "▶︎ Play";
-        } else {
-          sendCommand("play");
-          isPlaying = true;
-          btnPlayToggle.textContent = "⏸ Pause";
-        }
-      });
-      btnPrev.addEventListener("click", () => sendCommand("prev"));
-      btnNext.addEventListener("click", () => sendCommand("next"));
-      btnClear.addEventListener("click", () => {
-        if (confirm("Clear the gallery?")) sendCommand("clear");
-      });
-      btnRunAi.addEventListener("click", () => {
-        const prompt = aiPrompt.value.trim();
-        if (!prompt) {
-          setCommandStatus("Enter a prompt first.");
-          return;
-        }
-        if (aiAction.value === "refine") {
-          sendCommand("refine", { prompt });
-          return;
-        }
-        sendCommand("ai_generate", {
-          keyword: prompt,
-          mode: "flux",
-          count: parseInt(aiCount.value, 10),
-          size: aiSize.value
+      function blobToBase64(blob) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const result = reader.result || "";
+            const base64 = result.toString().split(",")[1] || "";
+            resolve(base64);
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
         });
-        startCooldown();
-      });
+      }
 
-      function updateAiControls() {
-        const isGenerate = aiAction.value === "generate";
-        aiCount.disabled = !isGenerate;
-        aiSize.disabled = !isGenerate;
-        aiCount.style.opacity = isGenerate ? "1" : "0.5";
-        aiSize.style.opacity = isGenerate ? "1" : "0.5";
+      async function transcribeAudio(base64, mime) {
+        try {
+          const res = await fetch(`${API_BASE}/api/transcribe`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ audio: base64, mime })
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            throw new Error(data.error || "Transcription failed");
+          }
+          if (data.text) {
+            chatInput.value = data.text;
+            await sendChat();
+          } else {
+            setStatus("No speech detected.");
+          }
+        } catch (err) {
+          setStatus(`Mic error: ${err.message}`);
+        }
       }
 
       function initSession() {
@@ -410,12 +445,22 @@
           setConnection(false, "No session");
           notice.textContent = "Scan the QR code on the presenter screen.";
         }
-        updateAiControls();
       }
 
-      if (aiAction) {
-        aiAction.addEventListener("change", updateAiControls);
-      }
+      chatSend.addEventListener("click", sendChat);
+      chatInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          sendChat();
+        }
+      });
+      chatMic.addEventListener("click", () => {
+        if (recording) {
+          stopRecording();
+        } else {
+          startRecording();
+        }
+      });
 
       initSession();
     </script>
