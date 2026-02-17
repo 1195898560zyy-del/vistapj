@@ -908,6 +908,7 @@
         <input id="agent-input" type="text" placeholder="Ask the agent to search, generate, or refine..." />
         <button class="primary" id="agent-send">Send</button>
       </div>
+      <div class="agent-log" id="agent-log"></div>
       <div class="agent-status" id="agent-status">Ready.</div>
     </div>
   </div>
@@ -1107,6 +1108,11 @@ function clearAgentLog() {
   agentLog = [];
   const logEl = document.getElementById("agent-log");
   if (logEl) logEl.innerHTML = "";
+}
+
+function resetAgentLog() {
+  clearAgentLog();
+  renderAgentLog();
 }
 
 function buildAgentSummary() {
@@ -1935,8 +1941,12 @@ initSession();
 initWeather();
 initViewToggle();
 initAgentBubble();
-clearAgentLog();
-renderAgentLog();
+resetAgentLog();
+
+window.addEventListener("load", resetAgentLog);
+window.addEventListener("pageshow", (event) => {
+  if (event.persisted) resetAgentLog();
+});
 
 const speedSelect = document.getElementById("speed-select");
 const autoplayToggle = document.getElementById("autoplay-toggle");
@@ -2085,8 +2095,14 @@ async function sendAgentMessage() {
 function sanitizeAgentReply(text) {
   if (!text) return "";
   let cleaned = text.replace(/!\[[^\]]*?\]\([^)]+?\)/g, "");
+  cleaned = cleaned.replace(/\[[^\]]*?\]\((https?:\/\/[^)]+?)\)/g, "");
   cleaned = cleaned.replace(/https?:\/\/\S+/g, "");
-  cleaned = cleaned.replace(/\s{2,}/g, " ").trim();
+  cleaned = cleaned.replace(/\S+\/\S*(crop=|ixid=|ixlib=|fm=|fit=)\S*/gi, "");
+  cleaned = cleaned
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line && !/^[\d\-•]+\.?$/.test(line));
+  cleaned = cleaned.join("\n").replace(/\s{2,}/g, " ").trim();
   return cleaned || "Got it.";
 }
 
