@@ -82,6 +82,41 @@
         min-height: 70vh;
       }
 
+      .remote-controls {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .control-group {
+        display: inline-flex;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .pill-button {
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: rgba(56, 189, 248, 0.18);
+        color: var(--text);
+        border: 1px solid rgba(56, 189, 248, 0.4);
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.12s ease, box-shadow 0.2s ease;
+      }
+
+      .pill-button.secondary {
+        background: rgba(148, 163, 184, 0.18);
+        border-color: rgba(148, 163, 184, 0.35);
+      }
+
+      .pill-button:hover:not(:disabled) {
+        transform: translateY(-1px);
+        box-shadow: 0 10px 20px rgba(56, 189, 248, 0.25);
+      }
+
       .chat-log {
         display: grid;
         gap: 10px;
@@ -229,6 +264,11 @@
       }
 
       @media (max-width: 560px) {
+        .remote-controls {
+          grid-template-columns: 1fr;
+          justify-items: start;
+        }
+
         .chat-row {
           grid-template-columns: 1fr;
         }
@@ -255,6 +295,15 @@
       </div>
 
       <section class="chat-card">
+        <div class="remote-controls">
+          <div class="control-group">
+            <button class="pill-button" id="remote-play" type="button">Play</button>
+          </div>
+          <div class="control-group">
+            <button class="pill-button secondary" id="remote-view-weather" type="button">Weather</button>
+            <button class="pill-button secondary" id="remote-view-gallery" type="button">Gallery</button>
+          </div>
+        </div>
         <div class="chat-log" id="chat-log"></div>
         <div class="chat-input">
           <div class="chat-row">
@@ -295,6 +344,9 @@
       const chatRatio = document.getElementById("chat-ratio");
       const chatWorking = document.getElementById("chat-working");
       const chatStatus = document.getElementById("chat-status");
+      const remotePlay = document.getElementById("remote-play");
+      const remoteWeather = document.getElementById("remote-view-weather");
+      const remoteGallery = document.getElementById("remote-view-gallery");
 
       let sessionId = null;
       let messages = [];
@@ -311,6 +363,13 @@
 
       function setStatus(text) {
         chatStatus.textContent = text;
+      }
+
+      function setViewButtons(active) {
+        if (!remoteWeather || !remoteGallery) return;
+        const isWeather = active === "weather";
+        remoteWeather.classList.toggle("secondary", !isWeather);
+        remoteGallery.classList.toggle("secondary", isWeather);
       }
 
       function sanitize(text) {
@@ -377,6 +436,7 @@
             mode: args.source || "unsplash",
             ratio: args.ratio || "1:1"
           });
+          return;
         }
         if (tool === "generate_ai") {
           sendCommand("ai_generate", {
@@ -385,15 +445,22 @@
             count: args.count || 1,
             size: args.aspect_ratio || "1:1"
           });
+          return;
         }
         if (tool === "refine_image") {
           sendCommand("refine", { prompt: args.prompt || "" });
+          return;
         }
         if (tool === "set_view") {
-          sendCommand("view", { mode: args.view || "weather" });
+          const nextView = args.view || "weather";
+          const presenterView = nextView === "gallery" ? "app" : nextView;
+          sendCommand("view", { mode: presenterView });
+          setViewButtons(nextView);
+          return;
         }
         if (tool === "refresh_weather") {
           sendCommand("weather_refresh");
+          return;
         }
       }
 
@@ -476,6 +543,28 @@
           setStatus("Mic error.");
         }
       }
+
+      if (remotePlay) {
+        remotePlay.addEventListener("click", () => {
+          sendCommand("play");
+        });
+      }
+
+      if (remoteWeather) {
+        remoteWeather.addEventListener("click", () => {
+          sendCommand("view", { mode: "weather" });
+          setViewButtons("weather");
+        });
+      }
+
+      if (remoteGallery) {
+        remoteGallery.addEventListener("click", () => {
+          sendCommand("view", { mode: "app" });
+          setViewButtons("gallery");
+        });
+      }
+
+      setViewButtons("weather");
 
       function stopRecording() {
         if (!recorder || !recording) return;
