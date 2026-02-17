@@ -8,12 +8,12 @@
       @import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap");
 
       :root {
-        --bg-1: #0b1220;
-        --bg-2: #111827;
+        --bg-1: #0f172a;
+        --bg-2: #1e293b;
         --accent: #38bdf8;
         --accent-2: #22c55e;
-        --card: rgba(255, 255, 255, 0.08);
-        --border: rgba(148, 163, 184, 0.3);
+        --card: rgba(15, 23, 42, 0.65);
+        --border: rgba(148, 163, 184, 0.28);
         --text: #f8fafc;
         --muted: #cbd5f5;
         --danger: #f43f5e;
@@ -26,7 +26,9 @@
       body {
         margin: 0;
         font-family: "Space Grotesk", "Segoe UI", sans-serif;
-        background: radial-gradient(circle at top, #1e40af 0%, #0f172a 55%, #020617 100%);
+        background:
+          radial-gradient(circle at top, rgba(56, 189, 248, 0.12), transparent 55%),
+          linear-gradient(160deg, #0f172a 0%, #0b1120 45%, #020617 100%);
         color: var(--text);
         min-height: 100vh;
       }
@@ -83,10 +85,14 @@
       }
 
       .remote-controls {
-        display: grid;
-        grid-template-columns: auto 1fr;
-        gap: 10px;
+        display: flex;
         align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 12px;
+        border-radius: 14px;
+        background: rgba(15, 23, 42, 0.6);
+        border: 1px solid rgba(148, 163, 184, 0.2);
       }
 
       .control-group {
@@ -108,8 +114,8 @@
       }
 
       .pill-button.secondary {
-        background: rgba(148, 163, 184, 0.18);
-        border-color: rgba(148, 163, 184, 0.35);
+        background: rgba(148, 163, 184, 0.12);
+        border-color: rgba(148, 163, 184, 0.3);
       }
 
       .pill-button:hover:not(:disabled) {
@@ -265,8 +271,8 @@
 
       @media (max-width: 560px) {
         .remote-controls {
-          grid-template-columns: 1fr;
-          justify-items: start;
+          flex-direction: column;
+          align-items: flex-start;
         }
 
         .chat-row {
@@ -297,7 +303,9 @@
       <section class="chat-card">
         <div class="remote-controls">
           <div class="control-group">
+            <button class="pill-button secondary" id="remote-prev" type="button">Prev</button>
             <button class="pill-button" id="remote-play" type="button">Play</button>
+            <button class="pill-button secondary" id="remote-next" type="button">Next</button>
           </div>
           <div class="control-group">
             <button class="pill-button secondary" id="remote-view-weather" type="button">Weather</button>
@@ -345,6 +353,8 @@
       const chatWorking = document.getElementById("chat-working");
       const chatStatus = document.getElementById("chat-status");
       const remotePlay = document.getElementById("remote-play");
+      const remotePrev = document.getElementById("remote-prev");
+      const remoteNext = document.getElementById("remote-next");
       const remoteWeather = document.getElementById("remote-view-weather");
       const remoteGallery = document.getElementById("remote-view-gallery");
 
@@ -547,6 +557,18 @@
       if (remotePlay) {
         remotePlay.addEventListener("click", () => {
           sendCommand("play");
+        });
+      }
+
+      if (remotePrev) {
+        remotePrev.addEventListener("click", () => {
+          sendCommand("prev");
+        });
+      }
+
+      if (remoteNext) {
+        remoteNext.addEventListener("click", () => {
+          sendCommand("next");
         });
       }
 
