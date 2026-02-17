@@ -290,6 +290,59 @@
       to   { transform: rotate(360deg); }
     }
 
+    .presenter-activity {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      color: #e2e8f0;
+      font-size: 12px;
+      letter-spacing: 0.3px;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(-6px);
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      z-index: 10000;
+    }
+
+    .presenter-activity.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .presenter-activity-spinner {
+      display: inline-flex;
+      gap: 4px;
+    }
+
+    .presenter-activity-spinner span {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #38bdf8;
+      animation: activityBounce 1s infinite ease-in-out;
+      opacity: 0.5;
+    }
+
+    .presenter-activity-spinner span:nth-child(2) {
+      animation-delay: 0.15s;
+    }
+
+    .presenter-activity-spinner span:nth-child(3) {
+      animation-delay: 0.3s;
+    }
+
+    @keyframes activityBounce {
+      0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+      40% { transform: translateY(-4px); opacity: 1; }
+    }
+
     .catalog-wrapper {
       max-width: 640px;
       margin: 10px auto 18px;
@@ -803,6 +856,12 @@
     <button id="view-weather" class="active">Weather</button>
     <button id="view-app">Gallery</button>
   </div>
+  <div id="presenter-activity" class="presenter-activity" aria-live="polite">
+    <div class="presenter-activity-spinner" aria-hidden="true">
+      <span></span><span></span><span></span>
+    </div>
+    <div id="presenter-activity-text">Working...</div>
+  </div>
 
   <section class="weather" id="weather-view">
     <div class="weather-bg">
@@ -1083,6 +1142,28 @@ let currentCycleRefines = 0;
 
 function setStatus(msg) {
   document.getElementById("status").textContent = msg || "";
+}
+
+let presenterActivityCount = 0;
+
+function showPresenterActivity(label) {
+  const el = document.getElementById("presenter-activity");
+  const text = document.getElementById("presenter-activity-text");
+  if (!el) return;
+  presenterActivityCount += 1;
+  if (label && text) {
+    text.textContent = label;
+  }
+  el.classList.add("visible");
+}
+
+function hidePresenterActivity() {
+  const el = document.getElementById("presenter-activity");
+  if (!el) return;
+  presenterActivityCount = Math.max(0, presenterActivityCount - 1);
+  if (presenterActivityCount === 0) {
+    el.classList.remove("visible");
+  }
 }
 
 function getAgentLog() {
@@ -1388,16 +1469,19 @@ async function fetchWeather(lat, lon) {
   return data;
 }
 
-function initWeather() {
+async function initWeather() {
+  showPresenterActivity("Updating weather...");
   const cached = readWeatherCache();
   if (cached && cached.ts && Date.now() - cached.ts < WEATHER_TTL) {
     applyWeatherUI(cached.data || {});
-    applyWeatherBackdrop(cached.data || {}, cached.images || []);
+    await applyWeatherBackdrop(cached.data || {}, cached.images || []);
+    hidePresenterActivity();
     return;
   }
 
   if (!navigator.geolocation) {
     applyWeatherUI({ city: "Location disabled", description: "Geolocation not supported" });
+    hidePresenterActivity();
     return;
   }
 
@@ -1406,14 +1490,17 @@ function initWeather() {
       try {
         const data = await fetchWeather(pos.coords.latitude, pos.coords.longitude);
         applyWeatherUI(data);
-        applyWeatherBackdrop(data);
+        await applyWeatherBackdrop(data);
         writeWeatherCache({ ts: Date.now(), data, images: [] });
+        hidePresenterActivity();
       } catch (err) {
         applyWeatherUI({ city: "Weather unavailable", description: err.message });
+        hidePresenterActivity();
       }
     },
     () => {
       applyWeatherUI({ city: "Location blocked", description: "Enable location to show weather" });
+      hidePresenterActivity();
     },
     { enableHighAccuracy: false, timeout: 8000, maximumAge: 600000 }
   );
@@ -1917,6 +2004,7 @@ async function searchLibrary() {
   }
 
   addSpinner();
+  showPresenterActivity("Searching...");
 
   try {
     if (mode === "unsplash") {
@@ -2001,8 +2089,10 @@ if (mode === "pexels") {
 
   } catch (err) {
     console.error(err);
-    removeSpinner();
     setStatus("Error: " + err.message);
+  } finally {
+    removeSpinner();
+    hidePresenterActivity();
   }
 }
 
@@ -2022,6 +2112,7 @@ async function generateAi() {
   }
 
   addSpinner();
+  showPresenterActivity("Generating...");
   setStatus("Generating Flux images...");
   showAILoading(prompt);
 
@@ -2064,9 +2155,11 @@ async function generateAi() {
     addHistory("flux", prompt, images);
   } catch (err) {
     console.error(err);
-    removeSpinner();
     hideAILoading();
     setStatus("Error: " + err.message);
+  } finally {
+    removeSpinner();
+    hidePresenterActivity();
   }
 }
 
@@ -2141,6 +2234,7 @@ async function refineCurrent(skipConfirm = false) {
     }
   }
 
+  showPresenterActivity("Refining...");
   updateRefineStatus("Refining...");
   try {
     const r = await fetch(`${API_BASE}/api/refine`, {
@@ -2167,6 +2261,8 @@ async function refineCurrent(skipConfirm = false) {
     updateRefineStatus("Refine complete.");
   } catch (err) {
     updateRefineStatus(`Refine error: ${err.message}`);
+  } finally {
+    hidePresenterActivity();
   }
 }
 

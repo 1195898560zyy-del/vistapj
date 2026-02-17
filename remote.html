@@ -136,6 +136,11 @@
         font-size: 14px;
       }
 
+      .ratio-select {
+        width: 84px;
+        padding: 10px 10px;
+      }
+
       button {
         padding: 12px 14px;
         border-radius: 12px;
@@ -183,6 +188,10 @@
         button {
           width: 100%;
         }
+
+        .ratio-select {
+          width: 100%;
+        }
       }
     </style>
   </head>
@@ -202,7 +211,7 @@
         <div class="chat-input">
           <div class="chat-row">
             <button class="secondary" id="chat-mic" type="button">Mic</button>
-            <select id="chat-ratio" aria-label="Aspect ratio">
+            <select id="chat-ratio" class="ratio-select" aria-label="Aspect ratio">
               <option value="1:1" selected>1:1</option>
               <option value="4:3">4:3</option>
               <option value="16:9">16:9</option>
