@@ -1261,7 +1261,7 @@
     <section class="command-panel glass-panel fade-up">
       <div class="panel-title">Search or generate</div>
       <div class="command-row">
-        <input id="unified-prompt" type="text" placeholder="Search or generate..." />
+        <input id="unified-prompt" type="text" placeholder="Search or generate..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
         <select id="unified-mode">
           <option value="search" selected>Search</option>
           <option value="generate">Generate</option>
@@ -1285,7 +1285,7 @@
     <div class="panel">
       <div class="panel-title">Search library</div>
       <div class="panel-row">
-        <input id="search-keyword" type="text" placeholder="Search keyword (e.g. dog, future city)" />
+        <input id="search-keyword" type="text" placeholder="Search keyword (e.g. dog, future city)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
         <select id="mode" onchange="onModeChange()">
           <option value="unsplash" selected>Unsplash</option>
           <option value="pexels">Pexels</option>
@@ -1304,7 +1304,7 @@
     <div class="panel">
       <div class="panel-title">AI generate (Flux)</div>
       <div class="panel-row">
-        <input id="ai-prompt" type="text" placeholder="Describe what to generate..." />
+        <input id="ai-prompt" type="text" placeholder="Describe what to generate..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
         <select id="ai-count">
           <option value="1">1</option>
           <option value="2">2</option>
@@ -1359,7 +1359,7 @@
   <div class="refine glass-panel fade-up" id="refine">
     <div class="settings-title">Refine image (Flux Kontext)</div>
     <div class="refine-actions">
-      <input id="refine-prompt" type="text" placeholder="Describe how to edit the current image..." />
+      <input id="refine-prompt" type="text" placeholder="Describe how to edit the current image..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
       <button class="primary" onclick="refineCurrent()">Refine</button>
       <button class="secondary" onclick="downloadRefined()">Download refined</button>
     </div>
@@ -1372,7 +1372,7 @@
       <div class="agent-log" id="agent-log"></div>
       <div class="agent-input">
         <button class="secondary agent-voice" id="agent-mic" type="button">Mic</button>
-        <input id="agent-input" type="text" placeholder="Ask the agent to search, generate, or refine..." />
+        <input id="agent-input" type="text" placeholder="Ask the agent to search, generate, or refine..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
         <button class="primary" id="agent-send">Send</button>
       </div>
       <div class="agent-status" id="agent-status">Ready.</div>
