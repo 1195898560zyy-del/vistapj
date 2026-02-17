@@ -494,6 +494,18 @@
       min-width: 180px;
     }
 
+    .agent-voice {
+      min-width: 70px;
+      padding: 8px 10px;
+      font-size: 12px;
+    }
+
+    .agent-voice.active {
+      background: #0ea5e9;
+      color: #fff;
+      border-color: #0ea5e9;
+    }
+
     .agent-status {
       font-size: 12px;
       color: #64748b;
@@ -906,7 +918,9 @@
     <div class="agent-panel" id="agent-panel">
       <div class="agent-log" id="agent-log"></div>
       <div class="agent-input">
+        <button class="secondary agent-voice" id="agent-mic" type="button">Mic</button>
         <input id="agent-input" type="text" placeholder="Ask the agent to search, generate, or refine..." />
+        <button class="secondary agent-voice" id="agent-voice" type="button">Speak</button>
         <button class="primary" id="agent-send">Send</button>
       </div>
       <div class="agent-status" id="agent-status">Ready.</div>
@@ -1043,6 +1057,9 @@ let sessionID = null;
 let sessionCode = null;
 let sessionPoll = null;
 let agentLog = [];
+let agentRecognizer = null;
+let isListening = false;
+let isSpeakingEnabled = true;
 
 const HISTORY_KEY = "vista_result_history_v1";
 const HISTORY_LIMIT = 5;
@@ -1069,6 +1086,9 @@ function appendAgentMessage(role, content) {
   log.push({ role, content, ts: Date.now() });
   saveAgentLog(log);
   renderAgentLog();
+  if (role === "assistant" && isSpeakingEnabled) {
+    speakAgentText(content);
+  }
 }
 
 function renderAgentLog() {
@@ -1113,6 +1133,96 @@ function clearAgentLog() {
 function resetAgentLog() {
   clearAgentLog();
   renderAgentLog();
+}
+
+function speakAgentText(text) {
+  if (!window.speechSynthesis) return;
+  const cleaned = sanitizeAgentReply(text || "");
+  if (!cleaned) return;
+  const utter = new SpeechSynthesisUtterance(cleaned);
+  utter.rate = 1;
+  utter.pitch = 1;
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(utter);
+}
+
+function initAgentVoice() {
+  const micBtn = document.getElementById("agent-mic");
+  const voiceBtn = document.getElementById("agent-voice");
+  const input = document.getElementById("agent-input");
+
+  if (voiceBtn) {
+    voiceBtn.classList.toggle("active", isSpeakingEnabled);
+    voiceBtn.addEventListener("click", () => {
+      isSpeakingEnabled = !isSpeakingEnabled;
+      voiceBtn.classList.toggle("active", isSpeakingEnabled);
+      setAgentStatus(isSpeakingEnabled ? "Voice on." : "Voice off.");
+    });
+  }
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition || !micBtn || !input) {
+    if (micBtn) {
+      micBtn.disabled = true;
+      micBtn.title = "Voice input not supported in this browser.";
+    }
+    return;
+  }
+
+  agentRecognizer = new SpeechRecognition();
+  agentRecognizer.lang = navigator.language || "en-US";
+  agentRecognizer.interimResults = true;
+  agentRecognizer.continuous = false;
+
+  agentRecognizer.onstart = () => {
+    isListening = true;
+    micBtn.classList.add("active");
+    setAgentStatus("Listening...");
+  };
+
+  agentRecognizer.onend = () => {
+    isListening = false;
+    micBtn.classList.remove("active");
+    setAgentStatus("Ready.");
+  };
+
+  agentRecognizer.onerror = (event) => {
+    console.warn("Speech error:", event.error);
+    setAgentStatus("Mic error.");
+  };
+
+  agentRecognizer.onresult = (event) => {
+    let finalText = "";
+    let interimText = "";
+    for (let i = event.resultIndex; i < event.results.length; i += 1) {
+      const transcript = event.results[i][0].transcript;
+      if (event.results[i].isFinal) {
+        finalText += transcript;
+      } else {
+        interimText += transcript;
+      }
+    }
+    const combined = (finalText || interimText || "").trim();
+    if (combined) {
+      input.value = combined;
+    }
+    if (finalText) {
+      sendAgentMessage();
+    }
+  };
+
+  micBtn.addEventListener("click", () => {
+    if (!agentRecognizer) return;
+    if (isListening) {
+      agentRecognizer.stop();
+      return;
+    }
+    try {
+      agentRecognizer.start();
+    } catch (err) {
+      console.warn(err);
+    }
+  });
 }
 
 function buildAgentSummary() {
@@ -1941,6 +2051,7 @@ initSession();
 initWeather();
 initViewToggle();
 initAgentBubble();
+initAgentVoice();
 resetAgentLog();
 
 window.addEventListener("load", resetAgentLog);
