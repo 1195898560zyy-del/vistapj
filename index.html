@@ -65,6 +65,24 @@
       pointer-events: none;
     }
 
+    .weather-day::after {
+      background: linear-gradient(
+        to top,
+        rgba(0,0,0,0.45),
+        rgba(0,0,0,0.15),
+        rgba(0,0,0,0.05)
+      );
+    }
+
+    .weather-night::after {
+      background: linear-gradient(
+        to top,
+        rgba(0,0,0,0.65),
+        rgba(0,0,0,0.35),
+        rgba(0,0,0,0.2)
+      );
+    }
+
     .weather-bg {
       position: absolute;
       inset: 0;
@@ -94,13 +112,16 @@
     }
 
     .weather-content {
-      position: relative;
-      z-index: 1;
-      padding: 28px 32px;
+      position: absolute;
+      bottom: 12%;
+      left: 8%;
+      z-index: 2;
       color: #f8fafc;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
       text-align: left;
-      display: grid;
-      gap: 8px;
+      max-width: 420px;
       text-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
     }
 
@@ -111,29 +132,31 @@
       opacity: 0.8;
     }
 
-    .weather-main {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: baseline;
-      gap: 12px;
-    }
-
     .weather-temp {
-      font-size: 56px;
-      font-weight: 700;
+      font-size: 84px;
+      font-weight: 600;
+      line-height: 1;
+      animation: fadeUp 0.6s ease forwards;
     }
 
-    .weather-meta {
-      display: grid;
-      gap: 4px;
-      font-size: 14px;
+    .weather-city {
+      font-size: 22px;
+      font-weight: 500;
+      opacity: 0.9;
+    }
+
+    .weather-desc {
+      font-size: 15px;
+      opacity: 0.7;
+      text-transform: capitalize;
     }
 
     .weather-extra {
+      margin-top: 10px;
       display: flex;
-      gap: 14px;
-      font-size: 12px;
-      opacity: 0.85;
+      gap: 16px;
+      font-size: 13px;
+      opacity: 0.8;
       flex-wrap: wrap;
     }
 
@@ -1241,12 +1264,10 @@
     </div>
     <div class="weather-content">
       <div class="weather-title">Local weather wallpaper</div>
-      <div class="weather-main">
+      <div class="weather-hero">
         <div class="weather-temp" id="weather-temp">--°</div>
-        <div class="weather-meta">
-          <div id="weather-city">Locating...</div>
-          <div id="weather-desc">—</div>
-        </div>
+        <div class="weather-city" id="weather-city">Locating...</div>
+        <div class="weather-desc" id="weather-desc">—</div>
       </div>
       <div class="weather-extra">
         <span id="weather-humidity">Humidity —</span>
@@ -1759,22 +1780,60 @@ function formatWeatherTime(dt, tz) {
   return `Updated ${hh}:${mm}`;
 }
 
-function weatherToQuery(main = "", description = "", isNight = false) {
+function weatherToQuery(main = "", description = "", isNight = false, city = "") {
   const base = main.toLowerCase();
   const desc = description.toLowerCase();
-  if (base.includes("thunder")) return "thunderstorm skyline, dramatic clouds, cinematic";
-  if (base.includes("snow")) return "snowy landscape, soft light, serene, cinematic";
-  if (base.includes("rain") || desc.includes("drizzle")) return "rainy city street, reflections, moody, cinematic";
-  if (base.includes("fog") || base.includes("mist") || desc.includes("haze")) {
-    return "foggy forest, atmospheric, muted tones, cinematic";
+
+  if (base.includes("thunder")) {
+    return isNight
+      ? `night city thunderstorm, lightning over ${city}, cinematic photo`
+      : `thunderstorm over ${city}, dramatic sky, cinematic photo`;
   }
-  if (base.includes("cloud")) return "overcast mountains, soft light, minimal, cinematic";
-  if (base.includes("clear") && isNight) return "clear night sky, stars, calm city, cinematic";
-  if (base.includes("clear")) return "sunny horizon, warm light, crisp air, cinematic";
-  return "cinematic landscape, soft light, atmospheric";
+
+  if (base.includes("snow")) {
+    return isNight
+      ? `snowy city street at night ${city}, warm lights, cinematic photo`
+      : `snowy ${city} street, soft daylight, cinematic photo`;
+  }
+
+  if (base.includes("rain") || desc.includes("drizzle")) {
+    return isNight
+      ? `rainy night in ${city}, street reflections, cinematic photo`
+      : `rainy ${city} street, wet pavement, cinematic photo`;
+  }
+
+  if (base.includes("fog") || base.includes("mist")) {
+    return isNight
+      ? `foggy night city ${city}, moody lights, cinematic photo`
+      : `foggy morning in ${city}, soft diffused light, cinematic photo`;
+  }
+
+  if (base.includes("clear") && isNight) {
+    return `clear night city skyline ${city}, street lights, calm atmosphere, cinematic photo`;
+  }
+
+  if (base.includes("clear")) {
+    return `sunny day in ${city}, blue sky, clean light, cinematic photo`;
+  }
+
+  return isNight
+    ? `night city ${city}, calm cinematic photo`
+    : `minimal landscape ${city}, soft light, cinematic photo`;
 }
 
 function applyWeatherUI(data) {
+  const hour = new Date().getHours();
+  const isNight = hour >= 19 || hour < 6;
+  const weatherEl = document.querySelector(".weather");
+  if (weatherEl) {
+    if (isNight) {
+      weatherEl.classList.add("weather-night");
+      weatherEl.classList.remove("weather-day");
+    } else {
+      weatherEl.classList.add("weather-day");
+      weatherEl.classList.remove("weather-night");
+    }
+  }
   const tempEl = document.getElementById("weather-temp");
   const cityEl = document.getElementById("weather-city");
   const descEl = document.getElementById("weather-desc");
@@ -1834,13 +1893,18 @@ async function applyWeatherBackdrop(data, cachedImages) {
   }
 
   const isNight = (data.icon || "").includes("n");
-  const query = weatherToQuery(data.main || "", data.description || "", isNight);
+  const query = weatherToQuery(
+    data.main || "",
+    data.description || "",
+    isNight,
+    data.city || ""
+  );
   try {
     const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
     const targetW = Math.round(window.innerWidth * pixelRatio);
     const targetH = Math.round(window.innerHeight * pixelRatio);
     const r = await fetch(
-      `${API_BASE}/api/unsplash?q=${encodeURIComponent(query)}&random=1&ratio=16:9&w=${targetW}&h=${targetH}`
+      `${API_BASE}/api/unsplash?q=${encodeURIComponent(query)}&ratio=16:9&w=${targetW}&h=${targetH}`
     );
     const res = await r.json();
     const images = res.images || [];
@@ -2778,15 +2842,26 @@ async function sendAgentMessage() {
           applyAgentResult(toolItem.name, toolItem.result, toolItem.args || {}, text);
         }
       });
-      appendAgentMessage("assistant", "Done. Updated.");
+
+      const replyText = data.reply || data.message || "";
+      if (replyText) {
+        appendAgentMessage("assistant", sanitizeAgentReply(replyText));
+      } else {
+        const toolNames = data.tools
+          .map((t) => (t && t.name ? t.name : ""))
+          .filter(Boolean);
+        const uniq = [...new Set(toolNames)];
+        const ack = uniq.map(buildAgentAck).join(" ");
+        appendAgentMessage("assistant", ack || "Done.");
+      }
     } else {
       if (data.tool && data.result) {
         applyAgentResult(data.tool, data.result, data.tool_args || {}, text);
       }
-      if (data.tool) {
-        appendAgentMessage("assistant", buildAgentAck(data.tool));
-      } else if (data.reply) {
+      if (data.reply) {
         appendAgentMessage("assistant", sanitizeAgentReply(data.reply));
+      } else if (data.tool) {
+        appendAgentMessage("assistant", buildAgentAck(data.tool));
       }
     }
     setAgentStatus("Ready.");
@@ -2814,9 +2889,12 @@ function sanitizeAgentReply(text) {
 }
 
 function buildAgentAck(tool) {
-  if (tool === "search_library") return "Search done. Gallery updated.";
-  if (tool === "generate_ai") return "Generated. Gallery updated.";
-  if (tool === "refine_image") return "Refine done. Gallery updated.";
+  const t = String(tool || "");
+  if (t === "search_library") return "Search done. Gallery updated.";
+  if (t === "generate_ai") return "Generated. Gallery updated.";
+  if (t === "refine_image") return "Refine done. Gallery updated.";
+  if (t === "refresh_weather") return "Weather refreshed.";
+  if (t === "set_view") return "View updated.";
   return "Done.";
 }
 
