@@ -195,39 +195,17 @@
       </div>
 
       <section class="section">
-        <div class="section-title">Search library</div>
-        <div class="row">
-          <label for="theme-input">Keyword</label>
-          <input id="theme-input" type="text" placeholder="future city, climate classroom..." />
-        </div>
-        <div class="row">
-          <label for="mode-select">Source</label>
-          <select id="mode-select">
-            <option value="unsplash">Unsplash</option>
-            <option value="pexels">Pexels</option>
-          </select>
-        </div>
-        <div class="row">
-          <label for="library-ratio">Aspect ratio</label>
-          <select id="library-ratio">
-            <option value="1:1" selected>1:1</option>
-            <option value="4:3">4:3</option>
-            <option value="16:9">16:9</option>
-            <option value="3:4">3:4</option>
-            <option value="9:16">9:16</option>
-          </select>
-        </div>
-        <div class="row">
-          <button class="btn" id="apply-theme">Search</button>
-        </div>
-        <div class="history-chips" id="theme-history"></div>
-      </section>
-
-      <section class="section">
-        <div class="section-title">AI generate (Flux)</div>
+        <div class="section-title">AI control</div>
         <div class="row">
           <label for="ai-prompt">Prompt</label>
           <input id="ai-prompt" type="text" placeholder="Describe what to generate..." />
+        </div>
+        <div class="row">
+          <label for="ai-action">Action</label>
+          <select id="ai-action">
+            <option value="generate" selected>Generate</option>
+            <option value="refine">Refine current</option>
+          </select>
         </div>
         <div class="row">
           <label for="ai-count">Count (1-5)</label>
@@ -250,7 +228,7 @@
           </select>
         </div>
         <div class="row">
-          <button class="btn" id="generate">✨ Generate</button>
+          <button class="btn" id="ai-run">Run</button>
         </div>
       </section>
 
@@ -266,22 +244,10 @@
         <div class="notice" id="notice"></div>
       </section>
 
-      <section class="section">
-        <div class="section-title">Refine</div>
-        <div class="row">
-          <label for="refine-input">Refine prompt</label>
-          <input id="refine-input" type="text" placeholder="Make it cinematic, add neon lights..." />
-        </div>
-        <div class="row">
-          <button class="btn" id="refine-send">🧪 Refine</button>
-        </div>
-      </section>
     </main>
 
     <script>
       const API_BASE = "https://vista-backend-1-6r3t.onrender.com";
-      const THEME_HISTORY_KEY = "vista_theme_history_v1";
-      const THEME_HISTORY_LIMIT = 5;
       const GENERATE_COOLDOWN = 30;
 
       const sessionIdEl = document.getElementById("session-id");
@@ -289,22 +255,16 @@
       const commandStatus = document.getElementById("command-status");
       const notice = document.getElementById("notice");
 
-      const themeInput = document.getElementById("theme-input");
-      const themeHistory = document.getElementById("theme-history");
-      const modeSelect = document.getElementById("mode-select");
-      const ratioSelect = document.getElementById("library-ratio");
       const aiPrompt = document.getElementById("ai-prompt");
+      const aiAction = document.getElementById("ai-action");
       const aiCount = document.getElementById("ai-count");
       const aiSize = document.getElementById("ai-size");
-      const refineInput = document.getElementById("refine-input");
 
-      const btnApplyTheme = document.getElementById("apply-theme");
       const btnPlayToggle = document.getElementById("play-toggle");
       const btnPrev = document.getElementById("prev");
       const btnNext = document.getElementById("next");
-      const btnGenerate = document.getElementById("generate");
+      const btnRunAi = document.getElementById("ai-run");
       const btnClear = document.getElementById("clear");
-      const btnRefine = document.getElementById("refine-send");
 
       let sessionId = null;
       let cooldownTimer = null;
@@ -319,39 +279,6 @@
 
       function setCommandStatus(text) {
         commandStatus.textContent = text;
-      }
-
-      function loadThemeHistory() {
-        try {
-          const raw = localStorage.getItem(THEME_HISTORY_KEY);
-          const list = raw ? JSON.parse(raw) : [];
-          return Array.isArray(list) ? list : [];
-        } catch (err) {
-          return [];
-        }
-      }
-
-      function saveThemeHistory(keyword) {
-        if (!keyword) return;
-        const list = loadThemeHistory().filter((item) => item !== keyword);
-        list.unshift(keyword);
-        const trimmed = list.slice(0, THEME_HISTORY_LIMIT);
-        localStorage.setItem(THEME_HISTORY_KEY, JSON.stringify(trimmed));
-        renderThemeHistory(trimmed);
-      }
-
-      function renderThemeHistory(list = loadThemeHistory()) {
-        themeHistory.innerHTML = "";
-        list.forEach((keyword) => {
-          const chip = document.createElement("button");
-          chip.className = "chip";
-          chip.textContent = keyword;
-          chip.addEventListener("click", () => {
-            themeInput.value = keyword;
-            sendCommand("theme", { keyword });
-          });
-          themeHistory.appendChild(chip);
-        });
       }
 
       async function sendCommand(type, payload = {}) {
@@ -412,40 +339,19 @@
 
       function startCooldown() {
         let remaining = GENERATE_COOLDOWN;
-        btnGenerate.disabled = true;
-        btnGenerate.textContent = `✨ ${remaining}s`;
+        btnRunAi.disabled = true;
+        btnRunAi.textContent = `${remaining}s`;
         cooldownTimer = setInterval(() => {
           remaining -= 1;
-          btnGenerate.textContent = `✨ ${remaining}s`;
+          btnRunAi.textContent = `${remaining}s`;
           if (remaining <= 0) {
             clearInterval(cooldownTimer);
-            btnGenerate.disabled = false;
-            btnGenerate.textContent = "✨ Generate";
+            btnRunAi.disabled = false;
+            btnRunAi.textContent = "Run";
           }
         }, 1000);
       }
 
-      function applyTheme() {
-        const keyword = themeInput.value.trim();
-        if (!keyword) {
-          setCommandStatus("Enter a keyword first.");
-          return;
-        }
-        saveThemeHistory(keyword);
-        sendCommand("theme", {
-          keyword,
-          mode: modeSelect.value,
-          ratio: ratioSelect ? ratioSelect.value : "1:1"
-        });
-      }
-
-      function applyMode() {
-        sendCommand("mode", { mode: modeSelect.value });
-        updateAiControls();
-      }
-
-      btnApplyTheme.addEventListener("click", applyTheme);
-      modeSelect.addEventListener("change", applyMode);
       btnPlayToggle.addEventListener("click", () => {
         if (isPlaying) {
           sendCommand("pause");
@@ -462,35 +368,31 @@
       btnClear.addEventListener("click", () => {
         if (confirm("Clear the gallery?")) sendCommand("clear");
       });
-      btnGenerate.addEventListener("click", () => {
-        const keyword = aiPrompt.value.trim();
-        if (!keyword) {
-          setCommandStatus("Enter a generate prompt first.");
+      btnRunAi.addEventListener("click", () => {
+        const prompt = aiPrompt.value.trim();
+        if (!prompt) {
+          setCommandStatus("Enter a prompt first.");
+          return;
+        }
+        if (aiAction.value === "refine") {
+          sendCommand("refine", { prompt });
           return;
         }
         sendCommand("ai_generate", {
-          keyword,
+          keyword: prompt,
           mode: "flux",
           count: parseInt(aiCount.value, 10),
           size: aiSize.value
         });
         startCooldown();
       });
-      btnRefine.addEventListener("click", () => {
-        const prompt = refineInput.value.trim();
-        if (!prompt) {
-          setCommandStatus("Enter a refine prompt first.");
-          return;
-        }
-        sendCommand("refine", { prompt });
-      });
 
       function updateAiControls() {
-        aiCount.disabled = false;
-        aiSize.disabled = false;
-        aiCount.style.opacity = "1";
-        aiSize.style.opacity = "1";
-        btnGenerate.disabled = false;
+        const isGenerate = aiAction.value === "generate";
+        aiCount.disabled = !isGenerate;
+        aiSize.disabled = !isGenerate;
+        aiCount.style.opacity = isGenerate ? "1" : "0.5";
+        aiSize.style.opacity = isGenerate ? "1" : "0.5";
       }
 
       function initSession() {
@@ -508,8 +410,11 @@
           setConnection(false, "No session");
           notice.textContent = "Scan the QR code on the presenter screen.";
         }
-        renderThemeHistory();
         updateAiControls();
+      }
+
+      if (aiAction) {
+        aiAction.addEventListener("change", updateAiControls);
       }
 
       initSession();
