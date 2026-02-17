@@ -920,7 +920,6 @@
       <div class="agent-input">
         <button class="secondary agent-voice" id="agent-mic" type="button">Mic</button>
         <input id="agent-input" type="text" placeholder="Ask the agent to search, generate, or refine..." />
-        <button class="secondary agent-voice" id="agent-voice" type="button">Speak</button>
         <button class="primary" id="agent-send">Send</button>
       </div>
       <div class="agent-status" id="agent-status">Ready.</div>
@@ -1057,9 +1056,9 @@ let sessionID = null;
 let sessionCode = null;
 let sessionPoll = null;
 let agentLog = [];
-let agentRecognizer = null;
-let isListening = false;
-let isSpeakingEnabled = true;
+let agentRecorder = null;
+let agentRecording = false;
+let agentRecordingChunks = [];
 
 const HISTORY_KEY = "vista_result_history_v1";
 const HISTORY_LIMIT = 5;
@@ -1086,9 +1085,6 @@ function appendAgentMessage(role, content) {
   log.push({ role, content, ts: Date.now() });
   saveAgentLog(log);
   renderAgentLog();
-  if (role === "assistant" && isSpeakingEnabled) {
-    speakAgentText(content);
-  }
 }
 
 function renderAgentLog() {
@@ -1135,94 +1131,99 @@ function resetAgentLog() {
   renderAgentLog();
 }
 
-function speakAgentText(text) {
-  if (!window.speechSynthesis) return;
-  const cleaned = sanitizeAgentReply(text || "");
-  if (!cleaned) return;
-  const utter = new SpeechSynthesisUtterance(cleaned);
-  utter.rate = 1;
-  utter.pitch = 1;
-  window.speechSynthesis.cancel();
-  window.speechSynthesis.speak(utter);
-}
-
 function initAgentVoice() {
   const micBtn = document.getElementById("agent-mic");
-  const voiceBtn = document.getElementById("agent-voice");
   const input = document.getElementById("agent-input");
 
-  if (voiceBtn) {
-    voiceBtn.classList.toggle("active", isSpeakingEnabled);
-    voiceBtn.addEventListener("click", () => {
-      isSpeakingEnabled = !isSpeakingEnabled;
-      voiceBtn.classList.toggle("active", isSpeakingEnabled);
-      setAgentStatus(isSpeakingEnabled ? "Voice on." : "Voice off.");
-    });
-  }
-
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SpeechRecognition || !micBtn || !input) {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !micBtn || !input) {
     if (micBtn) {
       micBtn.disabled = true;
-      micBtn.title = "Voice input not supported in this browser.";
+      micBtn.title = "Voice input not supported.";
     }
     return;
   }
 
-  agentRecognizer = new SpeechRecognition();
-  agentRecognizer.lang = navigator.language || "en-US";
-  agentRecognizer.interimResults = true;
-  agentRecognizer.continuous = false;
-
-  agentRecognizer.onstart = () => {
-    isListening = true;
-    micBtn.classList.add("active");
-    setAgentStatus("Listening...");
-  };
-
-  agentRecognizer.onend = () => {
-    isListening = false;
-    micBtn.classList.remove("active");
-    setAgentStatus("Ready.");
-  };
-
-  agentRecognizer.onerror = (event) => {
-    console.warn("Speech error:", event.error);
-    setAgentStatus("Mic error.");
-  };
-
-  agentRecognizer.onresult = (event) => {
-    let finalText = "";
-    let interimText = "";
-    for (let i = event.resultIndex; i < event.results.length; i += 1) {
-      const transcript = event.results[i][0].transcript;
-      if (event.results[i].isFinal) {
-        finalText += transcript;
-      } else {
-        interimText += transcript;
-      }
-    }
-    const combined = (finalText || interimText || "").trim();
-    if (combined) {
-      input.value = combined;
-    }
-    if (finalText) {
-      sendAgentMessage();
-    }
-  };
-
   micBtn.addEventListener("click", () => {
-    if (!agentRecognizer) return;
-    if (isListening) {
-      agentRecognizer.stop();
+    if (agentRecording) {
+      stopAgentRecording();
       return;
     }
-    try {
-      agentRecognizer.start();
-    } catch (err) {
-      console.warn(err);
-    }
+    startAgentRecording(input, micBtn);
   });
+}
+
+async function startAgentRecording(input, micBtn) {
+  if (agentRecording) return;
+  agentRecordingChunks = [];
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    agentRecorder = new MediaRecorder(stream);
+    agentRecorder.ondataavailable = (event) => {
+      if (event.data && event.data.size > 0) {
+        agentRecordingChunks.push(event.data);
+      }
+    };
+    agentRecorder.onstop = async () => {
+      stream.getTracks().forEach((track) => track.stop());
+      const blob = new Blob(agentRecordingChunks, { type: agentRecorder.mimeType || "audio/webm" });
+      const base64 = await blobToBase64(blob);
+      await transcribeAgentAudio(base64, blob.type, input);
+    };
+    agentRecorder.start();
+    agentRecording = true;
+    micBtn.classList.add("active");
+    micBtn.textContent = "Stop";
+    setAgentStatus("Recording...");
+  } catch (err) {
+    setAgentStatus("Mic error.");
+  }
+}
+
+function stopAgentRecording() {
+  if (!agentRecorder || !agentRecording) return;
+  agentRecorder.stop();
+  agentRecording = false;
+  const micBtn = document.getElementById("agent-mic");
+  if (micBtn) {
+    micBtn.classList.remove("active");
+    micBtn.textContent = "Mic";
+  }
+  setAgentStatus("Transcribing...");
+}
+
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = reader.result || "";
+      const base64 = result.toString().split(",")[1] || "";
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function transcribeAgentAudio(base64, mime, input) {
+  try {
+    const res = await fetch(`${API_BASE}/api/transcribe`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ audio: base64, mime })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || "Transcription failed");
+    }
+    if (data.text) {
+      input.value = data.text;
+      await sendAgentMessage();
+    } else {
+      setAgentStatus("No speech detected.");
+    }
+  } catch (err) {
+    setAgentStatus(`Mic error: ${err.message}`);
+  }
 }
 
 function buildAgentSummary() {
