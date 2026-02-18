@@ -1892,11 +1892,28 @@ async function applyWeatherBackdrop(data, cachedImages) {
     const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
     const targetW = Math.round(window.innerWidth * pixelRatio);
     const targetH = Math.round(window.innerHeight * pixelRatio);
-    const r = await fetch(
+    let r = await fetch(
       `${API_BASE}/api/unsplash?q=${encodeURIComponent(query)}&ratio=16:9&w=${targetW}&h=${targetH}`
     );
-    const res = await r.json();
-    const images = res.images || [];
+    let res = await r.json();
+    let images = res.images || [];
+    if (!images.length && city) {
+      r = await fetch(
+        `${API_BASE}/api/unsplash?q=${encodeURIComponent(base)}&ratio=16:9&w=${targetW}&h=${targetH}`
+      );
+      res = await r.json();
+      images = res.images || [];
+    }
+    if (!images.length) {
+      const fallbackQuery = isNight
+        ? "night city street, calm atmosphere, cinematic photo"
+        : "day city street, soft light, cinematic photo";
+      r = await fetch(
+        `${API_BASE}/api/unsplash?q=${encodeURIComponent(fallbackQuery)}&ratio=16:9&w=${targetW}&h=${targetH}`
+      );
+      res = await r.json();
+      images = res.images || [];
+    }
     if (images.length) {
       startWeatherSlideshow(images);
       const cached = readWeatherCache() || {};
