@@ -171,19 +171,22 @@
         gap: 14px;
         overflow-y: auto;
         padding-right: 6px;
-        max-height: 56vh;
+        max-height: 48vh;
+        align-content: start;
       }
 
       .msg {
-        max-width: 85%;
-        padding: 12px 16px;
+        max-width: 70%;
+        width: fit-content;
+        padding: 10px 14px;
         border-radius: 18px;
         background: rgba(255, 255, 255, 0.06);
         font-size: 14px;
-        line-height: 1.5;
+        line-height: 1.45;
         word-break: break-word;
         overflow-wrap: anywhere;
         white-space: pre-wrap;
+        align-self: start;
       }
 
       .msg.user {
@@ -358,17 +361,6 @@
       </div>
 
       <section class="chat-card">
-        <div class="remote-controls">
-          <div class="control-group">
-            <button class="pill-button" id="remote-prev" type="button">Prev</button>
-            <button class="pill-button primary" id="remote-play" type="button">Play</button>
-            <button class="pill-button" id="remote-next" type="button">Next</button>
-          </div>
-          <div class="control-group">
-            <button class="pill-button secondary" id="remote-view-weather" type="button">Weather</button>
-            <button class="pill-button secondary" id="remote-view-gallery" type="button">Gallery</button>
-          </div>
-        </div>
         <div class="chat-log" id="chat-log"></div>
         <div class="chat-input">
           <div class="chat-row">
@@ -391,6 +383,17 @@
               Working...
             </div>
             <div class="chat-status" id="chat-status">Ready.</div>
+          </div>
+        </div>
+        <div class="remote-controls">
+          <div class="control-group">
+            <button class="pill-button" id="remote-prev" type="button">Prev</button>
+            <button class="pill-button primary" id="remote-play" type="button">Play</button>
+            <button class="pill-button" id="remote-next" type="button">Next</button>
+          </div>
+          <div class="control-group">
+            <button class="pill-button secondary" id="remote-view-weather" type="button">Weather</button>
+            <button class="pill-button secondary" id="remote-view-gallery" type="button">Gallery</button>
           </div>
         </div>
       </section>
