@@ -1780,45 +1780,33 @@ function formatWeatherTime(dt, tz) {
   return `Updated ${hh}:${mm}`;
 }
 
-function weatherToQuery(main = "", description = "", isNight = false, city = "") {
+function weatherToQuery(main = "", description = "", isNight = false) {
   const base = main.toLowerCase();
   const desc = description.toLowerCase();
 
-  if (base.includes("thunder")) {
-    return isNight
-      ? `night city thunderstorm, lightning over ${city}, cinematic photo`
-      : `thunderstorm over ${city}, dramatic sky, cinematic photo`;
-  }
-
-  if (base.includes("snow")) {
-    return isNight
-      ? `snowy city street at night ${city}, warm lights, cinematic photo`
-      : `snowy ${city} street, soft daylight, cinematic photo`;
-  }
-
-  if (base.includes("rain") || desc.includes("drizzle")) {
-    return isNight
-      ? `rainy night in ${city}, street reflections, cinematic photo`
-      : `rainy ${city} street, wet pavement, cinematic photo`;
-  }
-
-  if (base.includes("fog") || base.includes("mist")) {
-    return isNight
-      ? `foggy night city ${city}, moody lights, cinematic photo`
-      : `foggy morning in ${city}, soft diffused light, cinematic photo`;
+  if ((base.includes("rain") || desc.includes("drizzle")) && isNight) {
+    return "rainy night city street, neon reflections, cinematic photo";
   }
 
   if (base.includes("clear") && isNight) {
-    return `clear night city skyline ${city}, street lights, calm atmosphere, cinematic photo`;
+    return "clear night city street, street lights, calm atmosphere, cinematic photo";
   }
 
   if (base.includes("clear")) {
-    return `sunny day in ${city}, blue sky, clean light, cinematic photo`;
+    return "sunny day, visible sun, sunlight, blue sky, warm light, cinematic photo";
+  }
+
+  if (base.includes("cloud")) {
+    return "partly cloudy sky, sunlight breaking through clouds, cinematic photo";
+  }
+
+  if (base.includes("rain") || desc.includes("drizzle")) {
+    return "rainy city street, wet pavement, cinematic photo";
   }
 
   return isNight
-    ? `night city ${city}, calm cinematic photo`
-    : `minimal landscape ${city}, soft light, cinematic photo`;
+    ? "night city street, calm atmosphere, cinematic photo"
+    : "minimal landscape, soft light, cinematic photo";
 }
 
 function applyWeatherUI(data) {
@@ -1893,12 +1881,13 @@ async function applyWeatherBackdrop(data, cachedImages) {
   }
 
   const isNight = (data.icon || "").includes("n");
-  const query = weatherToQuery(
+  const base = weatherToQuery(
     data.main || "",
     data.description || "",
-    isNight,
-    data.city || ""
+    isNight
   );
+  const city = (data.city || "").trim();
+  const query = city ? `${base} (${city})` : base;
   try {
     const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
     const targetW = Math.round(window.innerWidth * pixelRatio);
