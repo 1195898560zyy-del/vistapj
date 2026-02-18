@@ -113,8 +113,8 @@
 
     .weather-content {
       position: absolute;
-      bottom: 12%;
-      left: 8%;
+      bottom: 10%;
+      left: 6%;
       z-index: 2;
       color: #f8fafc;
       display: flex;
@@ -122,6 +122,11 @@
       gap: 12px;
       text-align: left;
       max-width: 420px;
+      background: rgba(0, 0, 0, 0.18);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 20px;
+      padding: 16px 18px;
       text-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
     }
 
@@ -158,6 +163,14 @@
       font-size: 13px;
       opacity: 0.8;
       flex-wrap: wrap;
+    }
+
+    @media (max-width: 640px) {
+      .weather-content {
+        bottom: 14%;
+        left: 6%;
+        max-width: 320px;
+      }
     }
 
     .view-hidden {
@@ -1780,38 +1793,38 @@ function formatWeatherTime(dt, tz) {
   return `Updated ${hh}:${mm}`;
 }
 
-function weatherToQuery(main = "", description = "", isNight = false) {
+function weatherToQuery(main = "", description = "", isNight = false, city = "") {
   const base = main.toLowerCase();
   const desc = description.toLowerCase();
+  const place = city ? `${city} ` : "";
 
   if ((base.includes("rain") || desc.includes("drizzle")) && isNight) {
-    return "rainy night city street, neon reflections, cinematic photo";
+    return `${place}rainy street night reflections photo`;
   }
 
   if (base.includes("clear") && isNight) {
-    return "clear night city street, street lights, calm atmosphere, cinematic photo";
+    return `${place}night skyline city lights photo`;
   }
 
   if (base.includes("clear")) {
-    return "sunny day, visible sun, sunlight, blue sky, warm light, cinematic photo";
+    return `${place}skyline sunny day photo`;
   }
 
   if (base.includes("cloud")) {
-    return "partly cloudy sky, sunlight breaking through clouds, cinematic photo";
+    return `${place}skyline cloudy day photo`;
   }
 
   if (base.includes("rain") || desc.includes("drizzle")) {
-    return "rainy city street, wet pavement, cinematic photo";
+    return `${place}rainy street day photo`;
   }
 
   return isNight
-    ? "night city street, calm atmosphere, cinematic photo"
-    : "minimal landscape, soft light, cinematic photo";
+    ? `${place}night skyline city lights photo`
+    : `${place}skyline day photo`;
 }
 
 function applyWeatherUI(data) {
-  const hour = new Date().getHours();
-  const isNight = hour >= 19 || hour < 6;
+  const isNight = (data.icon || "").includes("n");
   const weatherEl = document.querySelector(".weather");
   if (weatherEl) {
     if (isNight) {
@@ -1881,35 +1894,46 @@ async function applyWeatherBackdrop(data, cachedImages) {
   }
 
   const isNight = (data.icon || "").includes("n");
+  const city = (data.city || "").trim();
   const base = weatherToQuery(
     data.main || "",
     data.description || "",
-    isNight
+    isNight,
+    city
   );
-  const city = (data.city || "").trim();
-  const query = city ? `${base} (${city})` : base;
+  const query = city ? `${city} ${base}` : base;
   try {
     const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
     const targetW = Math.round(window.innerWidth * pixelRatio);
     const targetH = Math.round(window.innerHeight * pixelRatio);
+    const aspect = window.innerWidth / window.innerHeight;
+    const ratio =
+      aspect > 1.5 ? "16:9" :
+      aspect > 1.2 ? "4:3" :
+      aspect >= 1 ? "4:3" :
+      aspect > 0.75 ? "3:4" :
+      "9:16";
     let r = await fetch(
-      `${API_BASE}/api/unsplash?q=${encodeURIComponent(query)}&ratio=16:9&w=${targetW}&h=${targetH}`
+      `${API_BASE}/api/unsplash?q=${encodeURIComponent(query)}&ratio=${encodeURIComponent(ratio)}&w=${targetW}&h=${targetH}`
     );
     let res = await r.json();
     let images = res.images || [];
     if (!images.length && city) {
+      const fallbackQuery = isNight
+        ? `${city} night skyline city lights photo`
+        : `${city} skyline day photo`;
       r = await fetch(
-        `${API_BASE}/api/unsplash?q=${encodeURIComponent(base)}&ratio=16:9&w=${targetW}&h=${targetH}`
+        `${API_BASE}/api/unsplash?q=${encodeURIComponent(fallbackQuery)}&ratio=${encodeURIComponent(ratio)}&w=${targetW}&h=${targetH}`
       );
       res = await r.json();
       images = res.images || [];
     }
     if (!images.length) {
       const fallbackQuery = isNight
-        ? "night city street, calm atmosphere, cinematic photo"
-        : "day city street, soft light, cinematic photo";
+        ? "night city lights skyline photo"
+        : "day city skyline photo";
       r = await fetch(
-        `${API_BASE}/api/unsplash?q=${encodeURIComponent(fallbackQuery)}&ratio=16:9&w=${targetW}&h=${targetH}`
+        `${API_BASE}/api/unsplash?q=${encodeURIComponent(fallbackQuery)}&ratio=${encodeURIComponent(ratio)}&w=${targetW}&h=${targetH}`
       );
       res = await r.json();
       images = res.images || [];
