@@ -1739,6 +1739,7 @@ async function startAgentRecording(input, micBtn, options = {}) {
     };
     agentRecorder.onstop = async () => {
       stream.getTracks().forEach((track) => track.stop());
+      agentRecording = false;
       const blob = new Blob(agentRecordingChunks, { type: agentRecorder.mimeType || "audio/webm" });
       const base64 = await blobToBase64(blob);
       await transcribeAgentAudio(base64, blob.type, input);
