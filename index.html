@@ -1700,7 +1700,7 @@ function initAgentVoice() {
   });
 }
 
-const WAKE_WORDS = ["hey vista", "hi vista"];
+const WAKE_WORDS = ["hey vista", "hi vista", "heyvista", "hivista"];
 
 function extractWakeCommand(text) {
   const normalized = String(text || "")
@@ -1711,7 +1711,13 @@ function extractWakeCommand(text) {
   for (const wake of WAKE_WORDS) {
     const idx = normalized.indexOf(wake);
     if (idx !== -1) {
-      const rest = normalized.slice(idx + wake.length).trim();
+      let rest = normalized.slice(idx + wake.length).trim();
+      if (!rest && normalized.includes("heyvista")) {
+        rest = normalized.replace("heyvista", "").trim();
+      }
+      if (!rest && normalized.includes("hivista")) {
+        rest = normalized.replace("hivista", "").trim();
+      }
       return rest;
     }
   }
