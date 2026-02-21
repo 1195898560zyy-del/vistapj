@@ -1585,6 +1585,7 @@ let agentRecording = false;
 let agentRecordingChunks = [];
 let agentAlwaysListen = false;
 let agentRecordTimer = null;
+let agentListenCooldown = false;
 
 const HISTORY_KEY = "vista_result_history_v1";
 const HISTORY_LIMIT = 5;
@@ -1725,6 +1726,7 @@ function extractWakeCommand(text) {
 
 async function startAgentRecording(input, micBtn, options = {}) {
   if (agentRecording) return;
+  if (agentListenCooldown) return;
   agentAlwaysListen = Boolean(options.continuous);
   agentRecordingChunks = [];
   try {
@@ -1741,7 +1743,11 @@ async function startAgentRecording(input, micBtn, options = {}) {
       const base64 = await blobToBase64(blob);
       await transcribeAgentAudio(base64, blob.type, input);
       if (agentAlwaysListen && !agentRecording) {
-        setTimeout(() => startAgentRecording(input, micBtn, { continuous: true }), 300);
+        agentListenCooldown = true;
+        setTimeout(() => {
+          agentListenCooldown = false;
+          startAgentRecording(input, micBtn, { continuous: true });
+        }, 300);
       }
     };
     agentRecorder.start();
@@ -1752,7 +1758,7 @@ async function startAgentRecording(input, micBtn, options = {}) {
     if (agentAlwaysListen) {
       agentRecordTimer = setTimeout(() => {
         if (agentRecorder && agentRecording) agentRecorder.stop();
-      }, 4000);
+      }, 3200);
     }
   } catch (err) {
     setAgentStatus("Mic error.");
@@ -1766,6 +1772,7 @@ function stopAgentRecording() {
     clearTimeout(agentRecordTimer);
     agentRecordTimer = null;
   }
+  agentListenCooldown = false;
   agentRecorder.stop();
   agentRecording = false;
   const micBtn = document.getElementById("agent-mic");
