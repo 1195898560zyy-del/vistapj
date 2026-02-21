@@ -1750,7 +1750,7 @@ async function startAgentRecording(input, micBtn, options = {}) {
         }, 300);
       }
     };
-    agentRecorder.start();
+    agentRecorder.start(1000);
     agentRecording = true;
     micBtn.classList.add("active");
     micBtn.textContent = agentAlwaysListen ? "Listening" : "Stop";
@@ -1758,7 +1758,7 @@ async function startAgentRecording(input, micBtn, options = {}) {
     if (agentAlwaysListen) {
       agentRecordTimer = setTimeout(() => {
         if (agentRecorder && agentRecording) agentRecorder.stop();
-      }, 3200);
+      }, 6000);
     }
   } catch (err) {
     setAgentStatus("Mic error.");
@@ -1812,6 +1812,8 @@ async function transcribeAgentAudio(base64, mime, input) {
         const command = extractWakeCommand(data.text);
         if (command === null) {
           setAgentStatus(`Heard: ${data.text}`);
+          input.value = data.text;
+          await sendAgentMessage();
           return;
         }
         if (!command) {
