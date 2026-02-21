@@ -1059,6 +1059,26 @@
       box-shadow: 0 24px 50px rgba(0, 0, 0, 0.35);
     }
 
+    .gallery-source {
+      position: absolute;
+      left: 16px;
+      bottom: 16px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.45);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #f8fafc;
+      font-size: 12px;
+      letter-spacing: 0.2px;
+      z-index: 2;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    .gallery-source.visible {
+      opacity: 1;
+    }
+
     .ctrls.toolbar {
       position: absolute;
       left: 50%;
@@ -1361,7 +1381,10 @@
   <div id="status" class="status-text"></div>
 
   <section class="gallery-shell fade-up">
-    <div id="gallery"><p>Try searching or generating!</p></div>
+    <div id="gallery">
+      <p>Try searching or generating!</p>
+      <div id="gallery-source" class="gallery-source"></div>
+    </div>
     <div class="ctrls toolbar">
       <button class="ctrl-btn" onclick="startSlideshow()">▶︎</button>
       <button class="ctrl-btn" onclick="stopSlideshow()">⏸</button>
@@ -2165,7 +2188,14 @@ function restoreHistory(id) {
 
   const g = document.getElementById("gallery");
   g.innerHTML = "";
-  entry.urls.forEach((url, i) => createImg(url, entry.keyword, i === 0));
+  const sourceLabel = entry.mode === "unsplash"
+    ? "Unsplash"
+    : entry.mode === "pexels"
+      ? "Pexels"
+      : entry.mode === "flux"
+        ? "AI"
+        : "";
+  entry.urls.forEach((url, i) => createImg(url, entry.keyword, i === 0, sourceLabel));
   buildCatalog(entry.urls.length);
   setActive(0);
   currentCycleId = entry.id || null;
@@ -2354,12 +2384,34 @@ function removeSpinner() {
   if (s) s.remove();
 }
 
-function createImg(src, alt, active = false) {
+function detectImageSource(url) {
+  if (!url) return "Unknown";
+  if (url.includes("images.unsplash.com")) return "Unsplash";
+  if (url.includes("pexels.com") || url.includes("images.pexels.com")) return "Pexels";
+  return "AI";
+}
+
+function updateGallerySource() {
+  const label = document.getElementById("gallery-source");
+  if (!label) return;
+  const active = [...document.querySelectorAll("#gallery img")].find((img) => img.classList.contains("active"));
+  if (!active) {
+    label.textContent = "";
+    label.classList.remove("visible");
+    return;
+  }
+  label.textContent = active.dataset.source || detectImageSource(active.src);
+  label.classList.add("visible");
+}
+
+function createImg(src, alt, active = false, source) {
   const img = document.createElement("img");
   img.src = src;
   img.alt = alt;
+  img.dataset.source = source || detectImageSource(src);
   if (active) img.classList.add("active");
   document.getElementById("gallery").appendChild(img);
+  updateGallerySource();
 }
 
 function getImages() {
@@ -2381,6 +2433,7 @@ function setActive(i) {
   target.classList.add("active");
   slideIndex = i % imgs.length;
   updateCatalogActive(slideIndex);
+  updateGallerySource();
 }
 
 function buildCatalog(count) {
@@ -2586,7 +2639,7 @@ async function searchLibrary() {
 
       const g = document.getElementById("gallery");
       g.innerHTML = "";
-      results.forEach((url, i) => createImg(url, keyword, i === 0));
+      results.forEach((url, i) => createImg(url, keyword, i === 0, "Unsplash"));
 
       buildCatalog(results.length);
       setStatus(`Unsplash loaded ${results.length} images.`);
@@ -2618,7 +2671,7 @@ if (mode === "pexels") {
 
   const g = document.getElementById("gallery");
   g.innerHTML = "";
-  data.images.forEach((url, i) => createImg(url, keyword, i === 0));
+  data.images.forEach((url, i) => createImg(url, keyword, i === 0, "Pexels"));
 
   buildCatalog(data.images.length);
   setStatus(`Pexels loaded ${data.images.length} images.`);
@@ -2692,7 +2745,7 @@ async function generateAi() {
 
     const g = document.getElementById("gallery");
     g.innerHTML = "";
-    images.forEach((url, i) => createImg(url, prompt, i === 0));
+    images.forEach((url, i) => createImg(url, prompt, i === 0, "AI"));
 
     buildCatalog(images.length);
     setStatus(`Flux loaded ${images.length} images.`);
@@ -2814,7 +2867,7 @@ async function refineCurrent(skipConfirm = false) {
 
     const g = document.getElementById("gallery");
     g.innerHTML = "";
-    createImg(data.image, prompt, true);
+    createImg(data.image, prompt, true, "AI");
     buildCatalog(1);
     setActive(0);
     updateRefineStatus("Refine complete.");
@@ -2942,7 +2995,7 @@ function applyAgentResult(tool, result, args, fallbackText) {
     const keyword = args.query || fallbackText || "";
     const g = document.getElementById("gallery");
     g.innerHTML = "";
-    images.forEach((url, i) => createImg(url, keyword, i === 0));
+    images.forEach((url, i) => createImg(url, keyword, i === 0, result.source || "Unsplash"));
     buildCatalog(images.length);
     setStatus(`Loaded ${images.length} images.`);
     addHistory(result.source || "unsplash", keyword, images);
@@ -2957,7 +3010,7 @@ function applyAgentResult(tool, result, args, fallbackText) {
     const keyword = args.prompt || fallbackText || "";
     const g = document.getElementById("gallery");
     g.innerHTML = "";
-    images.forEach((url, i) => createImg(url, keyword, i === 0));
+    images.forEach((url, i) => createImg(url, keyword, i === 0, "AI"));
     buildCatalog(images.length);
     setStatus(`Generated ${images.length} images.`);
     addHistory("flux", keyword, images);
@@ -2971,7 +3024,7 @@ function applyAgentResult(tool, result, args, fallbackText) {
     }
     const g = document.getElementById("gallery");
     g.innerHTML = "";
-    createImg(image, args.prompt || "refine", true);
+    createImg(image, args.prompt || "refine", true, "AI");
     buildCatalog(1);
     setActive(0);
     lastRefinedUrl = image;
