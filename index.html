@@ -1782,11 +1782,13 @@ function buildAgentState() {
   const ratio = document.getElementById("library-ratio");
   const aiCount = document.getElementById("ai-count");
   const aiSize = document.getElementById("ai-size");
+  const activeImg = [...document.querySelectorAll("#gallery img")].find((img) => img.classList.contains("active"));
   return {
     mode: mode ? mode.value : null,
     ratio: ratio ? ratio.value : null,
     ai_count: aiCount ? aiCount.value : null,
-    ai_ratio: aiSize ? aiSize.value : null
+    ai_ratio: aiSize ? aiSize.value : null,
+    current_image: activeImg ? activeImg.src : null
   };
 }
 
