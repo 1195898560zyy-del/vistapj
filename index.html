@@ -1831,6 +1831,11 @@ async function transcribeAgentAudio(base64, mime, input) {
     }
   } catch (err) {
     setAgentStatus(`Mic error: ${err.message}`);
+  } finally {
+    if (agentAlwaysListen && !agentRecording && !agentListenCooldown) {
+      setAgentStatus("Listening for 'hey vista'...");
+      startAgentRecording(input, document.getElementById("agent-mic"), { continuous: true });
+    }
   }
 }
 
