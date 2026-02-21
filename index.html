@@ -1583,6 +1583,8 @@ let agentLog = [];
 let agentRecorder = null;
 let agentRecording = false;
 let agentRecordingChunks = [];
+let agentAlwaysListen = false;
+let agentRecordTimer = null;
 
 const HISTORY_KEY = "vista_result_history_v1";
 const HISTORY_LIMIT = 5;
@@ -1690,16 +1692,35 @@ function initAgentVoice() {
   }
 
   micBtn.addEventListener("click", () => {
-    if (agentRecording) {
+    if (agentRecording || agentAlwaysListen) {
       stopAgentRecording();
       return;
     }
-    startAgentRecording(input, micBtn);
+    startAgentRecording(input, micBtn, { continuous: true });
   });
 }
 
-async function startAgentRecording(input, micBtn) {
+const WAKE_WORDS = ["hey vista", "hi vista"];
+
+function extractWakeCommand(text) {
+  const normalized = String(text || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  for (const wake of WAKE_WORDS) {
+    const idx = normalized.indexOf(wake);
+    if (idx !== -1) {
+      const rest = normalized.slice(idx + wake.length).trim();
+      return rest;
+    }
+  }
+  return null;
+}
+
+async function startAgentRecording(input, micBtn, options = {}) {
   if (agentRecording) return;
+  agentAlwaysListen = Boolean(options.continuous);
   agentRecordingChunks = [];
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -1714,12 +1735,20 @@ async function startAgentRecording(input, micBtn) {
       const blob = new Blob(agentRecordingChunks, { type: agentRecorder.mimeType || "audio/webm" });
       const base64 = await blobToBase64(blob);
       await transcribeAgentAudio(base64, blob.type, input);
+      if (agentAlwaysListen && !agentRecording) {
+        setTimeout(() => startAgentRecording(input, micBtn, { continuous: true }), 300);
+      }
     };
     agentRecorder.start();
     agentRecording = true;
     micBtn.classList.add("active");
-    micBtn.textContent = "Stop";
-    setAgentStatus("Recording...");
+    micBtn.textContent = agentAlwaysListen ? "Listening" : "Stop";
+    setAgentStatus(agentAlwaysListen ? "Listening for 'hey vista'..." : "Recording...");
+    if (agentAlwaysListen) {
+      agentRecordTimer = setTimeout(() => {
+        if (agentRecorder && agentRecording) agentRecorder.stop();
+      }, 4000);
+    }
   } catch (err) {
     setAgentStatus("Mic error.");
   }
@@ -1727,6 +1756,11 @@ async function startAgentRecording(input, micBtn) {
 
 function stopAgentRecording() {
   if (!agentRecorder || !agentRecording) return;
+  agentAlwaysListen = false;
+  if (agentRecordTimer) {
+    clearTimeout(agentRecordTimer);
+    agentRecordTimer = null;
+  }
   agentRecorder.stop();
   agentRecording = false;
   const micBtn = document.getElementById("agent-mic");
@@ -1762,8 +1796,22 @@ async function transcribeAgentAudio(base64, mime, input) {
       throw new Error(data.error || "Transcription failed");
     }
     if (data.text) {
-      input.value = data.text;
-      await sendAgentMessage();
+      if (agentAlwaysListen) {
+        const command = extractWakeCommand(data.text);
+        if (command === null) {
+          setAgentStatus("Listening for 'hey vista'...");
+          return;
+        }
+        if (!command) {
+          setAgentStatus("Say a command after 'hey vista'.");
+          return;
+        }
+        input.value = command;
+        await sendAgentMessage();
+      } else {
+        input.value = data.text;
+        await sendAgentMessage();
+      }
     } else {
       setAgentStatus("No speech detected.");
     }
