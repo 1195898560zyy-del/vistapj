@@ -1700,28 +1700,27 @@ function initAgentVoice() {
   });
 }
 
-const WAKE_WORDS = ["hey vista", "hi vista", "heyvista", "hivista"];
+const WAKE_WORDS = ["hey vista", "hi vista"];
 
 function extractWakeCommand(text) {
-  const normalized = String(text || "")
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+  const raw = String(text || "").trim();
+  if (!raw) return null;
+  const normalized = raw.toLowerCase().replace(/[^a-z0-9]/g, "");
+  let matched = false;
   for (const wake of WAKE_WORDS) {
-    const idx = normalized.indexOf(wake);
-    if (idx !== -1) {
-      let rest = normalized.slice(idx + wake.length).trim();
-      if (!rest && normalized.includes("heyvista")) {
-        rest = normalized.replace("heyvista", "").trim();
-      }
-      if (!rest && normalized.includes("hivista")) {
-        rest = normalized.replace("hivista", "").trim();
-      }
-      return rest;
+    const compact = wake.replace(/\s+/g, "");
+    if (normalized.includes(compact)) {
+      matched = true;
+      break;
     }
   }
-  return null;
+  if (!matched) return null;
+  const wakeRegex = /(hey|hi)\s*vista/i;
+  let rest = raw.replace(wakeRegex, "").trim();
+  if (!rest) {
+    rest = raw.replace(/(heyvista|hivista)/i, "").trim();
+  }
+  return rest;
 }
 
 async function startAgentRecording(input, micBtn, options = {}) {
@@ -1805,7 +1804,7 @@ async function transcribeAgentAudio(base64, mime, input) {
       if (agentAlwaysListen) {
         const command = extractWakeCommand(data.text);
         if (command === null) {
-          setAgentStatus("Listening for 'hey vista'...");
+          setAgentStatus(`Heard: ${data.text}`);
           return;
         }
         if (!command) {
