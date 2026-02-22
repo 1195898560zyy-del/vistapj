@@ -165,6 +165,21 @@
       flex-wrap: wrap;
     }
 
+    .weather-source {
+      position: absolute;
+      right: 18px;
+      bottom: 18px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #f8fafc;
+      font-size: 11px;
+      letter-spacing: 0.3px;
+      z-index: 3;
+      opacity: 0.9;
+    }
+
     @media (max-width: 640px) {
       .weather-content {
         bottom: 14%;
@@ -1321,6 +1336,7 @@
         <span id="weather-time">Updated —</span>
       </div>
     </div>
+    <div class="weather-source" id="weather-source">Source: Unsplash</div>
   </section>
 
   <div id="app-view" class="app-view view-hidden">
