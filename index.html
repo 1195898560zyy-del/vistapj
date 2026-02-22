@@ -1817,6 +1817,7 @@ async function transcribeAgentAudio(base64, mime, input) {
       throw new Error(data.error || "Transcription failed");
     }
     if (data.text) {
+      input.value = data.text;
       if (isTrivialTranscript(data.text)) {
         setAgentStatus("No speech detected.");
         return;
@@ -1834,7 +1835,6 @@ async function transcribeAgentAudio(base64, mime, input) {
         input.value = command;
         await sendAgentMessage();
       } else {
-        input.value = data.text;
         await sendAgentMessage();
       }
     } else {
