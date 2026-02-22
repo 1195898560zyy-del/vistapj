@@ -1933,32 +1933,7 @@ function formatWeatherTime(dt, tz) {
 }
 
 function weatherToQuery(main = "", description = "", isNight = false, city = "") {
-  const base = main.toLowerCase();
-  const desc = description.toLowerCase();
-
-  if ((base.includes("rain") || desc.includes("drizzle")) && isNight) {
-    return "rainy street night reflections photo";
-  }
-
-  if (base.includes("clear") && isNight) {
-    return "night skyline city lights photo";
-  }
-
-  if (base.includes("clear")) {
-    return "skyline sunny day photo";
-  }
-
-  if (base.includes("cloud")) {
-    return "skyline cloudy day photo";
-  }
-
-  if (base.includes("rain") || desc.includes("drizzle")) {
-    return "rainy street day photo";
-  }
-
-  return isNight
-    ? "night skyline city lights photo"
-    : "skyline day photo";
+  return (description || main || "weather").trim();
 }
 
 function applyWeatherUI(data) {
