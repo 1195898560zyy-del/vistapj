@@ -1703,6 +1703,14 @@ function initAgentVoice() {
 
 const WAKE_WORDS = ["hey vista", "hi vista"];
 
+function isTrivialTranscript(text) {
+  const raw = String(text || "").trim().toLowerCase();
+  if (!raw) return true;
+  if (raw.length <= 2) return true;
+  const fillers = new Set(["you", "i", "uh", "um", "嗯", "啊", "额", "呃"]);
+  return fillers.has(raw);
+}
+
 function extractWakeCommand(text) {
   const raw = String(text || "").trim();
   if (!raw) return null;
@@ -1809,6 +1817,10 @@ async function transcribeAgentAudio(base64, mime, input) {
       throw new Error(data.error || "Transcription failed");
     }
     if (data.text) {
+      if (isTrivialTranscript(data.text)) {
+        setAgentStatus("No speech detected.");
+        return;
+      }
       if (agentAlwaysListen) {
         const command = extractWakeCommand(data.text);
         if (command === null) {
