@@ -1440,6 +1440,7 @@
       <div class="agent-log" id="agent-log"></div>
       <div class="agent-input">
         <button class="secondary agent-voice" id="agent-mic" type="button">Mic</button>
+        <button class="secondary agent-voice" id="agent-wake" type="button">Wake</button>
         <input id="agent-input" type="text" placeholder="Ask the agent to search, generate, or refine..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
         <button class="primary" id="agent-send">Send</button>
       </div>
@@ -1695,17 +1696,30 @@ function resetAgentLog() {
 
 function initAgentVoice() {
   const micBtn = document.getElementById("agent-mic");
+  const wakeBtn = document.getElementById("agent-wake");
   const input = document.getElementById("agent-input");
 
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !micBtn || !input) {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !micBtn || !wakeBtn || !input) {
     if (micBtn) {
       micBtn.disabled = true;
       micBtn.title = "Voice input not supported.";
+    }
+    if (wakeBtn) {
+      wakeBtn.disabled = true;
+      wakeBtn.title = "Voice input not supported.";
     }
     return;
   }
 
   micBtn.addEventListener("click", () => {
+    if (agentRecording) {
+      stopAgentRecording();
+      return;
+    }
+    startAgentRecording(input, micBtn, { continuous: false });
+  });
+
+  wakeBtn.addEventListener("click", () => {
     if (agentRecording || agentAlwaysListen) {
       stopAgentRecording();
       return;
@@ -1776,12 +1790,15 @@ async function startAgentRecording(input, micBtn, options = {}) {
     agentRecording = true;
     micBtn.classList.add("active");
     micBtn.textContent = agentAlwaysListen ? "Listening" : "Stop";
-    setAgentStatus(agentAlwaysListen ? "Listening for 'hey vista'..." : "Recording...");
-    if (agentAlwaysListen) {
-      agentRecordTimer = setTimeout(() => {
-        if (agentRecorder && agentRecording) agentRecorder.stop();
-      }, 6000);
+    const wakeBtn = document.getElementById("agent-wake");
+    if (wakeBtn) {
+      wakeBtn.classList.toggle("active", agentAlwaysListen);
+      wakeBtn.textContent = agentAlwaysListen ? "Wake On" : "Wake";
     }
+    setAgentStatus(agentAlwaysListen ? "Listening for 'hey vista'..." : "Recording...");
+    agentRecordTimer = setTimeout(() => {
+      if (agentRecorder && agentRecording) agentRecorder.stop();
+    }, 12000);
   } catch (err) {
     setAgentStatus("Mic error.");
   }
@@ -1801,6 +1818,11 @@ function stopAgentRecording() {
   if (micBtn) {
     micBtn.classList.remove("active");
     micBtn.textContent = "Mic";
+  }
+  const wakeBtn = document.getElementById("agent-wake");
+  if (wakeBtn) {
+    wakeBtn.classList.remove("active");
+    wakeBtn.textContent = "Wake";
   }
   setAgentStatus("Transcribing...");
 }
@@ -1847,7 +1869,9 @@ async function transcribeAgentAudio(base64, mime, input) {
         input.value = command;
         await sendAgentMessage();
       } else {
-        await sendAgentMessage();
+        input.value = data.text;
+        setAgentStatus("Ready.");
+        return;
       }
     } else {
       setAgentStatus("No speech detected.");
