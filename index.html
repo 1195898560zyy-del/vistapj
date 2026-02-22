@@ -1812,9 +1812,7 @@ async function transcribeAgentAudio(base64, mime, input) {
       if (agentAlwaysListen) {
         const command = extractWakeCommand(data.text);
         if (command === null) {
-          setAgentStatus(`Heard: ${data.text}`);
-          input.value = data.text;
-          await sendAgentMessage();
+          setAgentStatus("Listening for 'hey vista'...");
           return;
         }
         if (!command) {
