@@ -991,7 +991,7 @@
 
     .command-row {
       display: grid;
-      grid-template-columns: 1fr repeat(4, auto);
+      grid-template-columns: 1fr repeat(3, auto);
       gap: 12px;
       align-items: center;
     }
@@ -1320,10 +1320,6 @@
           <option value="search" selected>Search</option>
           <option value="generate">Generate</option>
         </select>
-        <select id="unified-source">
-          <option value="unsplash" selected>Unsplash</option>
-          <option value="pexels">Pexels</option>
-        </select>
         <select id="unified-ratio">
           <option value="1:1" selected>1:1</option>
           <option value="4:3">4:3</option>
@@ -1341,7 +1337,8 @@
       <div class="panel-row">
         <input id="search-keyword" type="text" placeholder="Search keyword (e.g. dog, future city)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
         <select id="mode" onchange="onModeChange()">
-          <option value="unsplash" selected>Unsplash</option>
+          <option value="multi" selected>Multi</option>
+          <option value="unsplash">Unsplash</option>
           <option value="pexels">Pexels</option>
         </select>
         <select id="library-ratio">
@@ -2273,7 +2270,7 @@ function restoreHistory(id) {
       ? "Pexels"
       : entry.mode === "flux"
         ? "AI"
-        : "";
+        : undefined;
   entry.urls.forEach((url, i) => createImg(url, entry.keyword, i === 0, sourceLabel));
   buildCatalog(entry.urls.length);
   setActive(0);
@@ -2470,8 +2467,21 @@ function detectImageSource(url) {
   return "AI";
 }
 
+function ensureGallerySourceLabel() {
+  const g = document.getElementById("gallery");
+  if (!g) return null;
+  let label = document.getElementById("gallery-source");
+  if (!label) {
+    label = document.createElement("div");
+    label.id = "gallery-source";
+    label.className = "gallery-source";
+    g.appendChild(label);
+  }
+  return label;
+}
+
 function updateGallerySource() {
-  const label = document.getElementById("gallery-source");
+  const label = ensureGallerySourceLabel();
   if (!label) return;
   const active = [...document.querySelectorAll("#gallery img")].find((img) => img.classList.contains("active"));
   if (!active) {
@@ -2484,6 +2494,7 @@ function updateGallerySource() {
 }
 
 function createImg(src, alt, active = false, source) {
+  ensureGallerySourceLabel();
   const img = document.createElement("img");
   img.src = src;
   img.alt = alt;
@@ -2622,7 +2633,6 @@ function syncUnifiedMode() {
 function submitUnified() {
   const promptInput = document.getElementById("unified-prompt");
   const modeSelect = document.getElementById("unified-mode");
-  const sourceSelect = document.getElementById("unified-source");
   const ratioSelect = document.getElementById("unified-ratio");
   if (!promptInput || !modeSelect) return;
   const prompt = promptInput.value.trim();
@@ -2637,7 +2647,7 @@ function submitUnified() {
     const mode = document.getElementById("mode");
     const libraryRatio = document.getElementById("library-ratio");
     if (searchInput) searchInput.value = prompt;
-    if (mode && sourceSelect) mode.value = sourceSelect.value;
+    if (mode) mode.value = mode.value || "multi";
     if (libraryRatio) libraryRatio.value = ratio;
     searchLibrary();
     return;
@@ -2653,13 +2663,11 @@ function submitUnified() {
 }
 
 function initUnifiedControls() {
-  const unifiedSource = document.getElementById("unified-source");
   const unifiedRatio = document.getElementById("unified-ratio");
   const unifiedPrompt = document.getElementById("unified-prompt");
   const mode = document.getElementById("mode");
   const libraryRatio = document.getElementById("library-ratio");
   const searchInput = document.getElementById("search-keyword");
-  if (unifiedSource && mode) unifiedSource.value = mode.value;
   if (unifiedRatio && libraryRatio) unifiedRatio.value = libraryRatio.value;
   if (unifiedPrompt && searchInput) unifiedPrompt.value = searchInput.value || "";
   syncUnifiedMode();
@@ -2683,6 +2691,51 @@ async function searchLibrary() {
   showPresenterActivity("Searching...");
 
   try {
+    if (mode === "multi") {
+      setStatus("Searching multiple libraries...");
+      let uImages = [];
+      let pImages = [];
+      try {
+        const r = await fetch(
+          `${API_BASE}/api/unsplash?q=${encodeURIComponent(keyword)}&random=1&ratio=${encodeURIComponent(ratio)}`
+        );
+        const data = await r.json();
+        uImages = data.images || [];
+      } catch (err) {
+        // ignore unsplash failure
+      }
+
+      try {
+        const r = await fetch(
+          `${API_BASE}/api/pexels?q=${encodeURIComponent(keyword)}&random=1&ratio=${encodeURIComponent(ratio)}`
+        );
+        const data = await r.json();
+        pImages = data.images || [];
+      } catch (err) {
+        // ignore pexels failure
+      }
+
+      removeSpinner();
+      const results = uImages.concat(pImages);
+      if (!results.length) {
+        clearGallery();
+        setStatus("No images found.");
+        return;
+      }
+
+      const g = document.getElementById("gallery");
+      g.innerHTML = "";
+      results.forEach((url, i) => {
+        const sourceLabel = i < uImages.length ? "Unsplash" : "Pexels";
+        createImg(url, keyword, i === 0, sourceLabel);
+      });
+
+      buildCatalog(results.length);
+      setStatus(`Loaded ${results.length} images from Unsplash + Pexels.`);
+      addHistory("mixed", keyword, results);
+      return;
+    }
+
     if (mode === "unsplash") {
 
       if (keyword !== currentKeyword) {
