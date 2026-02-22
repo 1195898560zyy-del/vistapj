@@ -1933,7 +1933,8 @@ function formatWeatherTime(dt, tz) {
 }
 
 function weatherToQuery(main = "", description = "", isNight = false, city = "") {
-  return (description || main || "weather").trim();
+  const base = (description || main || "weather").trim() || "weather";
+  return isNight ? `${base} night` : base;
 }
 
 function applyWeatherUI(data) {
