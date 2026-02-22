@@ -1079,6 +1079,19 @@
       opacity: 1;
     }
 
+    .gallery-loader {
+      margin-top: 12px;
+      font-size: 12px;
+      color: var(--muted);
+      text-align: center;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    .gallery-loader.visible {
+      opacity: 1;
+    }
+
     .ctrls.toolbar {
       position: absolute;
       left: 50%;
@@ -1389,6 +1402,7 @@
       <button class="ctrl-btn" onclick="downloadCurrent()">↓</button>
       <button class="ctrl-btn danger" onclick="clearGallery()">✕</button>
     </div>
+    <div id="gallery-loader" class="gallery-loader">Loading more...</div>
   </section>
 
   <div class="catalog-wrapper" id="catalog-wrapper" style="display:none;">
@@ -1572,6 +1586,8 @@ let isPlaying = false;
 let currentKeyword = "";
 let currentPage = 1;
 let totalPages = 1;
+let searchState = null;
+let searchScrollTimer = null;
 
 let sessionID = null;
 let sessionCode = null;
@@ -2467,6 +2483,15 @@ function detectImageSource(url) {
   return "AI";
 }
 
+function shuffleArray(items) {
+  const arr = items.slice();
+  for (let i = arr.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
 function ensureGallerySourceLabel() {
   const g = document.getElementById("gallery");
   if (!g) return null;
@@ -2506,6 +2531,132 @@ function createImg(src, alt, active = false, source) {
 
 function getImages() {
   return document.querySelectorAll("#gallery img");
+}
+
+function setGalleryLoader(visible, text) {
+  const el = document.getElementById("gallery-loader");
+  if (!el) return;
+  if (text) el.textContent = text;
+  el.classList.toggle("visible", visible);
+}
+
+function resetSearchSession(mode, keyword, ratio) {
+  searchState = {
+    mode,
+    keyword,
+    ratio,
+    unsplashPage: 1,
+    unsplashTotal: 1,
+    pexelsPage: 1,
+    loading: false,
+    exhausted: false,
+    loaded: 0,
+    emptyStreak: 0,
+    seen: new Set()
+  };
+}
+
+async function fetchUnsplashBatch(page, keyword, ratio) {
+  const r = await fetch(
+    `${API_BASE}/api/unsplash?q=${encodeURIComponent(keyword)}&page=${page}&ratio=${encodeURIComponent(ratio)}`
+  );
+  const data = await r.json();
+  if (!r.ok || data.error || data.errors) {
+    throw new Error((data.error && (data.error.message || data.error)) || data.errors || "Unsplash failed");
+  }
+  return {
+    images: data.images || [],
+    totalPages: data.totalPages || 1
+  };
+}
+
+async function fetchPexelsBatch(page, keyword, ratio) {
+  const r = await fetch(
+    `${API_BASE}/api/pexels?q=${encodeURIComponent(keyword)}&page=${page}&ratio=${encodeURIComponent(ratio)}`
+  );
+  const data = await r.json();
+  if (!r.ok || data.error) {
+    throw new Error(data.error || "Pexels failed");
+  }
+  return { images: data.images || [] };
+}
+
+function appendSearchResults(urls, sourceLabel) {
+  if (!searchState) return 0;
+  let added = 0;
+  urls.forEach((url) => {
+    if (!url || searchState.seen.has(url)) return;
+    searchState.seen.add(url);
+    createImg(url, searchState.keyword, false, sourceLabel);
+    added += 1;
+  });
+  searchState.loaded += added;
+  return added;
+}
+
+async function loadNextSearchBatch(isInitial = false) {
+  if (!searchState || searchState.loading || searchState.exhausted) return;
+  searchState.loading = true;
+  if (isInitial) addSpinner();
+  setGalleryLoader(true, isInitial ? "Loading images..." : "Loading more...");
+  showPresenterActivity("Searching...");
+  try {
+    let added = 0;
+    if (searchState.mode === "unsplash") {
+      const res = await fetchUnsplashBatch(searchState.unsplashPage, searchState.keyword, searchState.ratio);
+      searchState.unsplashTotal = res.totalPages || 1;
+      const shuffled = shuffleArray(res.images || []);
+      added += appendSearchResults(shuffled, "Unsplash");
+      searchState.unsplashPage += 1;
+      if (searchState.unsplashPage > searchState.unsplashTotal) {
+        searchState.exhausted = true;
+      }
+    } else if (searchState.mode === "pexels") {
+      const res = await fetchPexelsBatch(searchState.pexelsPage, searchState.keyword, searchState.ratio);
+      const shuffled = shuffleArray(res.images || []);
+      added += appendSearchResults(shuffled, "Pexels");
+      searchState.pexelsPage += 1;
+    } else {
+      const [uRes, pRes] = await Promise.all([
+        fetchUnsplashBatch(searchState.unsplashPage, searchState.keyword, searchState.ratio),
+        fetchPexelsBatch(searchState.pexelsPage, searchState.keyword, searchState.ratio)
+      ]);
+      searchState.unsplashTotal = uRes.totalPages || 1;
+      const uAdded = appendSearchResults(shuffleArray(uRes.images || []), "Unsplash");
+      const pAdded = appendSearchResults(shuffleArray(pRes.images || []), "Pexels");
+      added += uAdded + pAdded;
+      searchState.unsplashPage += 1;
+      searchState.pexelsPage += 1;
+      if (searchState.unsplashPage > searchState.unsplashTotal && added === 0) {
+        searchState.exhausted = true;
+      }
+    }
+
+    if (added === 0) {
+      searchState.emptyStreak += 1;
+      if (searchState.emptyStreak >= 2) {
+        searchState.exhausted = true;
+      }
+    } else {
+      searchState.emptyStreak = 0;
+    }
+
+    const count = getImages().length;
+    if (count) {
+      buildCatalog(count);
+      if (![...getImages()].some((img) => img.classList.contains("active"))) {
+        setActive(0);
+      }
+      setStatus(`Loaded ${count} images.`);
+    }
+  } catch (err) {
+    setStatus(`Search error: ${err.message}`);
+  } finally {
+    removeSpinner();
+    hidePresenterActivity();
+    setGalleryLoader(false);
+    if (searchState) searchState.loading = false;
+  }
 }
 
 function updateCatalogActive(i) {
@@ -2647,7 +2798,7 @@ function submitUnified() {
     const mode = document.getElementById("mode");
     const libraryRatio = document.getElementById("library-ratio");
     if (searchInput) searchInput.value = prompt;
-    if (mode) mode.value = mode.value || "multi";
+    if (mode) mode.value = "multi";
     if (libraryRatio) libraryRatio.value = ratio;
     searchLibrary();
     return;
@@ -2687,141 +2838,23 @@ async function searchLibrary() {
     return;
   }
 
-  addSpinner();
-  showPresenterActivity("Searching...");
+  resetSearchSession(mode, keyword, ratio);
+  clearGallery();
+  setGalleryLoader(true, "Loading images...");
 
   try {
-    if (mode === "multi") {
-      setStatus("Searching multiple libraries...");
-      let uImages = [];
-      let pImages = [];
-      try {
-        const r = await fetch(
-          `${API_BASE}/api/unsplash?q=${encodeURIComponent(keyword)}&random=1&ratio=${encodeURIComponent(ratio)}`
-        );
-        const data = await r.json();
-        uImages = data.images || [];
-      } catch (err) {
-        // ignore unsplash failure
-      }
-
-      try {
-        const r = await fetch(
-          `${API_BASE}/api/pexels?q=${encodeURIComponent(keyword)}&random=1&ratio=${encodeURIComponent(ratio)}`
-        );
-        const data = await r.json();
-        pImages = data.images || [];
-      } catch (err) {
-        // ignore pexels failure
-      }
-
-      removeSpinner();
-      const results = uImages.concat(pImages);
-      if (!results.length) {
-        clearGallery();
-        setStatus("No images found.");
-        return;
-      }
-
-      const g = document.getElementById("gallery");
-      g.innerHTML = "";
-      results.forEach((url, i) => {
-        const sourceLabel = i < uImages.length ? "Unsplash" : "Pexels";
-        createImg(url, keyword, i === 0, sourceLabel);
-      });
-
-      buildCatalog(results.length);
-      setStatus(`Loaded ${results.length} images from Unsplash + Pexels.`);
-      addHistory("mixed", keyword, results);
-      return;
+    setStatus("Searching library...");
+    await loadNextSearchBatch(true);
+    const count = getImages().length;
+    if (count) {
+      addHistory(mode === "multi" ? "mixed" : mode, keyword, [...getImages()].map((img) => img.src));
     }
-
-    if (mode === "unsplash") {
-
-      if (keyword !== currentKeyword) {
-        currentKeyword = keyword;
-        currentPage = 1;
-      }
-
-      setStatus("Searching Unsplash... (random)");
-
-      let r = await fetch(
-        `${API_BASE}/api/unsplash?q=${encodeURIComponent(keyword)}&random=1&ratio=${encodeURIComponent(ratio)}`
-      );
-
-      let data = await r.json();
-      totalPages = data.totalPages || 1;
-
-      if (data.error || data.errors) {
-        removeSpinner();
-        const errMsg = (data.error && (data.error.message || data.error)) || data.errors;
-        setStatus(`Unsplash failed: ${errMsg}`);
-        return;
-      }
-
-      removeSpinner();
-
-      const results = data.images || [];
-
-      if (!results.length) {
-        clearGallery();
-        setStatus("No images found.");
-        return;
-      }
-
-      const g = document.getElementById("gallery");
-      g.innerHTML = "";
-      results.forEach((url, i) => createImg(url, keyword, i === 0, "Unsplash"));
-
-      buildCatalog(results.length);
-      setStatus(`Unsplash loaded ${results.length} images.`);
-      addHistory("unsplash", keyword, results);
-      return;
-    }
-      // ===========================
-// PEXELS
-// ===========================
-if (mode === "pexels") {
-  setStatus("Searching Pexels...");
-
-  const r = await fetch(`${API_BASE}/api/pexels?q=${encodeURIComponent(keyword)}&random=1&ratio=${encodeURIComponent(ratio)}`);
-  const data = await r.json();
-
-  removeSpinner();
-
-  if (data.error) {
-    clearGallery();
-    setStatus(`Pexels failed: ${data.error}`);
-    return;
-  }
-
-  if (!data.images || !data.images.length) {
-    clearGallery();
-    setStatus("No Pexels results found.");
-    return;
-  }
-
-  const g = document.getElementById("gallery");
-  g.innerHTML = "";
-  data.images.forEach((url, i) => createImg(url, keyword, i === 0, "Pexels"));
-
-  buildCatalog(data.images.length);
-  setStatus(`Pexels loaded ${data.images.length} images.`);
-  addHistory("pexels", keyword, data.images);
-  return;
-}
-
-  // ===========================
-// LEXICA
-// ===========================
-// Lexica removed
 
   } catch (err) {
     console.error(err);
     setStatus("Error: " + err.message);
   } finally {
-    removeSpinner();
-    hidePresenterActivity();
+    setGalleryLoader(false);
   }
 }
 
@@ -2899,6 +2932,8 @@ initViewToggle();
 initUnifiedControls();
 initAgentBubble();
 initAgentVoice();
+initInfiniteSearch();
+initGalleryInteractions();
 resetAgentLog();
 
 window.addEventListener("load", resetAgentLog);
@@ -3316,6 +3351,46 @@ function initAgentBubble() {
   window.addEventListener("resize", () => {
     applyPosition(drag.x, drag.y);
     snap();
+  });
+}
+
+function initInfiniteSearch() {
+  window.addEventListener("scroll", () => {
+    if (!searchState || searchState.loading || searchState.exhausted) return;
+    if (searchScrollTimer) return;
+    searchScrollTimer = setTimeout(() => {
+      searchScrollTimer = null;
+      const nearBottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 200;
+      if (nearBottom) {
+        loadNextSearchBatch(false);
+      }
+    }, 200);
+  });
+}
+
+function initGalleryInteractions() {
+  const gallery = document.getElementById("gallery");
+  if (!gallery) return;
+  let startX = 0;
+  let startY = 0;
+  gallery.addEventListener("click", (e) => {
+    if (e.target && e.target.tagName === "IMG") {
+      toggleFullscreen();
+    }
+  });
+  gallery.addEventListener("pointerdown", (e) => {
+    startX = e.clientX;
+    startY = e.clientY;
+  });
+  gallery.addEventListener("pointerup", (e) => {
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy)) return;
+    if (dx < 0) {
+      setActive(slideIndex + 1);
+    } else {
+      setActive(slideIndex - 1);
+    }
   });
 }
 </script>
