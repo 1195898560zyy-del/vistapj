@@ -259,6 +259,17 @@
         text-align: right;
       }
 
+      .chat-heard {
+        font-size: 12px;
+        color: #22d3ee;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+      }
+
+      .chat-heard.visible {
+        opacity: 1;
+      }
+
       .chat-status-row {
         display: flex;
         align-items: center;
@@ -365,6 +376,7 @@
         <div class="chat-input">
           <div class="chat-row">
             <button class="secondary" id="chat-mic" type="button">Mic</button>
+            <button class="secondary" id="chat-wake" type="button">Wake</button>
             <select id="chat-ratio" class="ratio-select" aria-label="Aspect ratio">
               <option value="1:1" selected>1:1</option>
               <option value="4:3">4:3</option>
@@ -382,6 +394,7 @@
               </div>
               Working...
             </div>
+            <div class="chat-heard" id="chat-heard">Heard: hey vista</div>
             <div class="chat-status" id="chat-status">Ready.</div>
           </div>
         </div>
@@ -410,8 +423,10 @@
       const chatInput = document.getElementById("chat-input");
       const chatSend = document.getElementById("chat-send");
       const chatMic = document.getElementById("chat-mic");
+      const chatWake = document.getElementById("chat-wake");
       const chatRatio = document.getElementById("chat-ratio");
       const chatWorking = document.getElementById("chat-working");
+      const chatHeard = document.getElementById("chat-heard");
       const chatStatus = document.getElementById("chat-status");
       const remoteWorking = document.getElementById("remote-working");
       const remotePlay = document.getElementById("remote-play");
@@ -425,6 +440,9 @@
       let recorder = null;
       let recording = false;
       let recordingChunks = [];
+      let wakeAlwaysListen = false;
+      let wakeRecordTimer = null;
+      let wakeListenCooldown = false;
       let workingCount = 0;
 
       function showRemoteWorking() {
@@ -448,6 +466,46 @@
 
       function setStatus(text) {
         chatStatus.textContent = text;
+      }
+
+      const WAKE_WORDS = ["hey vista", "hi vista"];
+
+      function isTrivialTranscript(text) {
+        const raw = String(text || "").trim().toLowerCase();
+        if (!raw) return true;
+        if (raw.length <= 2) return true;
+        const fillers = new Set(["you", "i", "uh", "um", "嗯", "啊", "额", "呃"]);
+        return fillers.has(raw);
+      }
+
+      function extractWakeCommand(text) {
+        const raw = String(text || "").trim();
+        if (!raw) return null;
+        const normalized = raw.toLowerCase().replace(/[^a-z0-9]/g, "");
+        let matched = false;
+        for (const wake of WAKE_WORDS) {
+          const compact = wake.replace(/\s+/g, "");
+          if (normalized.includes(compact)) {
+            matched = true;
+            break;
+          }
+        }
+        if (!matched) return null;
+        const wakeRegex = /(hey|hi)\s*vista/i;
+        let rest = raw.replace(wakeRegex, "").trim();
+        if (!rest) {
+          rest = raw.replace(/(heyvista|hivista)/i, "").trim();
+        }
+        return rest;
+      }
+
+      function flashWakeHeard() {
+        if (!chatHeard) return;
+        chatHeard.classList.add("visible");
+        clearTimeout(chatHeard._timer);
+        chatHeard._timer = setTimeout(() => {
+          chatHeard.classList.remove("visible");
+        }, 1800);
       }
 
       function setViewButtons(active) {
@@ -602,13 +660,18 @@
         }
       }
 
-      async function startRecording() {
+      async function startRecording(options = {}) {
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
           chatMic.disabled = true;
           chatMic.title = "Voice input not supported.";
+          if (chatWake) {
+            chatWake.disabled = true;
+            chatWake.title = "Voice input not supported.";
+          }
           return;
         }
-        if (recording) return;
+        if (recording || wakeListenCooldown) return;
+        wakeAlwaysListen = Boolean(options.continuous);
         recordingChunks = [];
         try {
           const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -623,12 +686,26 @@
             const blob = new Blob(recordingChunks, { type: recorder.mimeType || "audio/webm" });
             const base64 = await blobToBase64(blob);
             await transcribeAudio(base64, blob.type);
+            if (wakeAlwaysListen && !recording) {
+              wakeListenCooldown = true;
+              setTimeout(() => {
+                wakeListenCooldown = false;
+                startRecording({ continuous: true });
+              }, 300);
+            }
           };
           recorder.start();
           recording = true;
           chatMic.classList.add("active");
-          chatMic.textContent = "Stop";
-          setStatus("Recording...");
+          chatMic.textContent = wakeAlwaysListen ? "Listening" : "Stop";
+          if (chatWake) {
+            chatWake.classList.toggle("active", wakeAlwaysListen);
+            chatWake.textContent = wakeAlwaysListen ? "Wake On" : "Wake";
+          }
+          setStatus(wakeAlwaysListen ? "Listening for 'hey vista'..." : "Recording...");
+          wakeRecordTimer = setTimeout(() => {
+            if (recorder && recording) recorder.stop();
+          }, 12000);
         } catch (err) {
           setStatus("Mic error.");
         }
@@ -670,10 +747,20 @@
 
       function stopRecording() {
         if (!recorder || !recording) return;
+        wakeAlwaysListen = false;
+        if (wakeRecordTimer) {
+          clearTimeout(wakeRecordTimer);
+          wakeRecordTimer = null;
+        }
+        wakeListenCooldown = false;
         recorder.stop();
         recording = false;
         chatMic.classList.remove("active");
         chatMic.textContent = "Mic";
+        if (chatWake) {
+          chatWake.classList.remove("active");
+          chatWake.textContent = "Wake";
+        }
         setStatus("Transcribing...");
       }
 
@@ -703,8 +790,27 @@
             throw new Error(data.error || "Transcription failed");
           }
           if (data.text) {
-            chatInput.value = data.text;
-            await sendChat();
+            if (isTrivialTranscript(data.text)) {
+              setStatus("No speech detected.");
+              return;
+            }
+            if (wakeAlwaysListen) {
+              const command = extractWakeCommand(data.text);
+              if (command === null) {
+                setStatus("Listening for 'hey vista'...");
+                return;
+              }
+              if (!command) {
+                setStatus("Say a command after 'hey vista'.");
+                return;
+              }
+              flashWakeHeard();
+              chatInput.value = command;
+              await sendChat();
+            } else {
+              chatInput.value = data.text;
+              await sendChat();
+            }
           } else {
             setStatus("No speech detected.");
           }
@@ -743,9 +849,18 @@
         if (recording) {
           stopRecording();
         } else {
-          startRecording();
+          startRecording({ continuous: false });
         }
       });
+      if (chatWake) {
+        chatWake.addEventListener("click", () => {
+          if (recording || wakeAlwaysListen) {
+            stopRecording();
+          } else {
+            startRecording({ continuous: true });
+          }
+        });
+      }
 
       initSession();
     </script>
