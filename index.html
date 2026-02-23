@@ -1021,14 +1021,6 @@
       display: none;
     }
 
-    .refine-quick {
-      display: grid;
-      gap: 8px;
-    }
-
-    .refine-quick .primary {
-      justify-self: start;
-    }
 
     .panel-title {
       font-size: 12px;
@@ -1039,9 +1031,24 @@
 
     .command-row {
       display: grid;
-      grid-template-columns: 1fr repeat(3, auto);
+      grid-template-columns: 1fr repeat(4, auto);
       gap: 12px;
       align-items: center;
+    }
+
+    .command-refine {
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text);
+      font-weight: 500;
+      padding: 10px 16px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .command-refine:hover {
+      background: rgba(255, 255, 255, 0.14);
     }
 
     .command-panel input,
@@ -1394,14 +1401,10 @@
             <option value="9:16">9:16</option>
           </select>
           <button class="primary" id="unified-submit">Go</button>
+          <button class="command-refine" id="refine-quick" type="button">Refine</button>
         </div>
       </section>
-
-      <div class="refine-quick glass-panel fade-up">
-        <div class="settings-title">Refine current image</div>
-        <button class="primary" id="refine-quick">Refine</button>
-        <div id="refine-status" style="font-size:13px;color:#64748b;"></div>
-      </div>
+      <div id="refine-status" class="status-text"></div>
 
       <div class="control-panels legacy-panels">
       <div class="panel">
