@@ -644,47 +644,8 @@
       align-self: start;
     }
 
-    .refine {
-      width: 90%;
-      max-width: 1000px;
-      margin: 10px auto 12px;
-      padding: 14px 16px;
-      background: #ffffff;
-      border: 1px solid #e2e8f0;
-      border-radius: 16px;
-      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
-      text-align: left;
-      display: grid;
-      gap: 12px;
-    }
-
-    .refine-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      align-items: center;
-    }
-
-    .refine-actions input {
-      flex: 1;
-      min-width: 220px;
-    }
-
-    @media (max-width: 720px) {
-      .refine-actions input {
-        min-width: 100%;
-      }
-    }
-
     .history {
-      width: 90%;
-      max-width: 1000px;
-      margin: 14px auto 16px;
       padding: 14px 16px;
-      background: #ffffff;
-      border: 1px solid #e2e8f0;
-      border-radius: 16px;
-      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
       text-align: left;
     }
 
@@ -785,13 +746,7 @@
     }
 
     .session {
-      width: 90%;
-      max-width: 1000px;
-      margin: 10px auto 24px;
       padding: 14px 16px;
-      border-radius: 16px;
-      border: 1px dashed #cbd5e1;
-      background: #f8fafc;
       text-align: left;
       display: grid;
       gap: 12px;
@@ -1000,7 +955,9 @@
       margin: 0 auto;
       padding: 48px 28px 120px;
       display: grid;
-      gap: 48px;
+      grid-template-columns: minmax(0, 1fr) 320px;
+      gap: 32px;
+      align-items: start;
     }
 
     .glass-panel {
@@ -1015,6 +972,25 @@
     .command-panel {
       display: grid;
       gap: 16px;
+    }
+
+    .app-main {
+      display: grid;
+      gap: 32px;
+    }
+
+    .app-side {
+      display: grid;
+      gap: 24px;
+    }
+
+    .refine-quick {
+      display: grid;
+      gap: 8px;
+    }
+
+    .refine-quick .primary {
+      justify-self: start;
     }
 
     .panel-title {
@@ -1306,6 +1282,7 @@
 
       .app-shell {
         padding: 32px 20px 100px;
+        grid-template-columns: 1fr;
       }
 
       #gallery {
@@ -1361,114 +1338,135 @@
 
   <div id="app-view" class="app-view view-hidden">
   <div class="app-shell">
-    <section class="command-panel glass-panel fade-up">
-      <div class="panel-title">Search or generate</div>
-      <div class="command-row">
-        <input id="unified-prompt" type="text" placeholder="Search or generate..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
-        <select id="unified-mode">
-          <option value="search" selected>Search</option>
-          <option value="generate">Generate</option>
-        </select>
-        <select id="unified-ratio">
-          <option value="1:1" selected>1:1</option>
-          <option value="4:3">4:3</option>
-          <option value="16:9">16:9</option>
-          <option value="3:4">3:4</option>
-          <option value="9:16">9:16</option>
-        </select>
-        <button class="primary" id="unified-submit">Go</button>
+    <div class="app-main">
+      <section class="command-panel glass-panel fade-up">
+        <div class="panel-title">Search or generate</div>
+        <div class="command-row">
+          <input id="unified-prompt" type="text" placeholder="Search or generate..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+          <select id="unified-mode">
+            <option value="search" selected>Search</option>
+            <option value="generate">Generate</option>
+          </select>
+          <select id="unified-ratio">
+            <option value="1:1" selected>1:1</option>
+            <option value="4:3">4:3</option>
+            <option value="16:9">16:9</option>
+            <option value="3:4">3:4</option>
+            <option value="9:16">9:16</option>
+          </select>
+          <button class="primary" id="unified-submit">Go</button>
+        </div>
+      </section>
+
+      <div class="refine-quick glass-panel fade-up">
+        <div class="settings-title">Refine current image</div>
+        <button class="primary" id="refine-quick">Refine</button>
+        <div id="refine-status" style="font-size:13px;color:#64748b;"></div>
       </div>
+
+      <div class="control-panels legacy-panels">
+      <div class="panel">
+        <div class="panel-title">Search library</div>
+        <div class="panel-row">
+          <input id="search-keyword" type="text" placeholder="Search keyword (e.g. dog, future city)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+          <select id="mode" onchange="onModeChange()">
+            <option value="multi" selected>Multi</option>
+            <option value="unsplash">Unsplash</option>
+            <option value="pexels">Pexels</option>
+            <option value="pixabay">Pixabay</option>
+          </select>
+          <select id="library-ratio">
+            <option value="1:1" selected>1:1</option>
+            <option value="4:3">4:3</option>
+            <option value="16:9">16:9</option>
+            <option value="3:4">3:4</option>
+            <option value="9:16">9:16</option>
+          </select>
+          <button class="primary" onclick="searchLibrary()">Search</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">AI generate (Flux)</div>
+        <div class="panel-row">
+          <input id="ai-prompt" type="text" placeholder="Describe what to generate..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
+          <select id="ai-count">
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3" selected>3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+          </select>
+          <select id="ai-size">
+            <option value="1:1" selected>1:1</option>
+            <option value="4:3">4:3</option>
+            <option value="16:9">16:9</option>
+            <option value="3:4">3:4</option>
+            <option value="9:16">9:16</option>
+          </select>
+          <button class="primary" onclick="generateAi()">Generate</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="status" class="status-text"></div>
+
+    <section class="gallery-shell fade-up">
+      <div id="gallery">
+        <p>Try searching or generating!</p>
+        <div id="gallery-source" class="gallery-source"></div>
+      </div>
+      <div class="ctrls toolbar">
+        <button class="ctrl-btn" onclick="startSlideshow()">▶︎</button>
+        <button class="ctrl-btn" onclick="stopSlideshow()">⏸</button>
+        <button class="ctrl-btn" onclick="toggleFullscreen()">⛶</button>
+        <button class="ctrl-btn" onclick="downloadCurrent()">↓</button>
+        <button class="ctrl-btn danger" onclick="clearGallery()">✕</button>
+      </div>
+      <div id="gallery-loader" class="gallery-loader">Loading more...</div>
     </section>
 
-    <div class="control-panels legacy-panels">
-    <div class="panel">
-      <div class="panel-title">Search library</div>
-      <div class="panel-row">
-        <input id="search-keyword" type="text" placeholder="Search keyword (e.g. dog, future city)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
-        <select id="mode" onchange="onModeChange()">
-          <option value="multi" selected>Multi</option>
-          <option value="unsplash">Unsplash</option>
-          <option value="pexels">Pexels</option>
+    <div class="catalog-wrapper" id="catalog-wrapper" style="display:none;">
+      <div class="catalog" id="catalog"></div>
+    </div>
+  </div>
+
+  <aside class="app-side">
+    <div class="settings glass-panel fade-up" id="settings">
+      <div class="settings-title">Playback settings</div>
+      <div class="settings-row">
+        <label for="speed-select">Speed</label>
+        <select id="speed-select">
+          <option value="2000">Fast (2s)</option>
+          <option value="3000" selected>Normal (3s)</option>
+          <option value="5000">Slow (5s)</option>
         </select>
-        <select id="library-ratio">
-          <option value="1:1" selected>1:1</option>
-          <option value="4:3">4:3</option>
-          <option value="16:9">16:9</option>
-          <option value="3:4">3:4</option>
-          <option value="9:16">9:16</option>
-        </select>
-        <button class="primary" onclick="searchLibrary()">Search</button>
+
+        <label for="autoplay-toggle">Autoplay</label>
+        <input id="autoplay-toggle" type="checkbox" />
       </div>
     </div>
 
-    <div class="panel">
-      <div class="panel-title">AI generate (Flux)</div>
-      <div class="panel-row">
-        <input id="ai-prompt" type="text" placeholder="Describe what to generate..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
-        <select id="ai-count">
-          <option value="1">1</option>
-          <option value="2">2</option>
-          <option value="3" selected>3</option>
-          <option value="4">4</option>
-          <option value="5">5</option>
-        </select>
-        <select id="ai-size">
-          <option value="1:1" selected>1:1</option>
-          <option value="4:3">4:3</option>
-          <option value="16:9">16:9</option>
-          <option value="3:4">3:4</option>
-          <option value="9:16">9:16</option>
-        </select>
-        <button class="primary" onclick="generateAi()">Generate</button>
+    <div class="history glass-panel fade-up" id="history">
+      <div class="history-header">
+        <div class="history-title">Result history</div>
+        <button class="history-clear" onclick="clearHistory()">Clear history</button>
+      </div>
+      <div class="history-grid" id="history-grid"></div>
+    </div>
+
+    <div class="session glass-panel fade-up" id="sessionBox">
+      <div class="session-title">Remote control</div>
+      <div class="session-grid">
+        <img class="session-qr" id="session-qr" alt="QR code" />
+        <div class="session-meta">
+          <div>Scan the QR code to open the phone remote.</div>
+          <div>Short code: <span class="session-code" id="session-code">—</span></div>
+          <div class="session-link"><a id="session-link" href="#" target="_blank">—</a></div>
+        </div>
       </div>
     </div>
-  </div>
-
-  <div id="status" class="status-text"></div>
-
-  <section class="gallery-shell fade-up">
-    <div id="gallery">
-      <p>Try searching or generating!</p>
-      <div id="gallery-source" class="gallery-source"></div>
-    </div>
-    <div class="ctrls toolbar">
-      <button class="ctrl-btn" onclick="startSlideshow()">▶︎</button>
-      <button class="ctrl-btn" onclick="stopSlideshow()">⏸</button>
-      <button class="ctrl-btn" onclick="toggleFullscreen()">⛶</button>
-      <button class="ctrl-btn" onclick="downloadCurrent()">↓</button>
-      <button class="ctrl-btn danger" onclick="clearGallery()">✕</button>
-    </div>
-    <div id="gallery-loader" class="gallery-loader">Loading more...</div>
-  </section>
-
-  <div class="catalog-wrapper" id="catalog-wrapper" style="display:none;">
-    <div class="catalog" id="catalog"></div>
-  </div>
-
-  <div class="settings glass-panel fade-up" id="settings">
-    <div class="settings-title">Playback settings</div>
-    <div class="settings-row">
-      <label for="speed-select">Speed</label>
-      <select id="speed-select">
-        <option value="2000">Fast (2s)</option>
-        <option value="3000" selected>Normal (3s)</option>
-        <option value="5000">Slow (5s)</option>
-      </select>
-
-      <label for="autoplay-toggle">Autoplay</label>
-      <input id="autoplay-toggle" type="checkbox" />
-    </div>
-  </div>
-
-  <div class="refine glass-panel fade-up" id="refine">
-    <div class="settings-title">Refine image (Flux Kontext)</div>
-    <div class="refine-actions">
-      <input id="refine-prompt" type="text" placeholder="Describe how to edit the current image..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
-      <button class="primary" onclick="refineCurrent()">Refine</button>
-      <button class="secondary" onclick="downloadRefined()">Download refined</button>
-    </div>
-    <div id="refine-status" style="font-size:13px;color:#64748b;"></div>
-  </div>
+  </aside>
 
   <div class="agent-fab right" id="agent-fab">
     <button class="agent-bubble" id="agent-bubble">AI</button>
@@ -1485,34 +1483,12 @@
     </div>
   </div>
 
-  <div class="history glass-panel fade-up" id="history">
-    <div class="history-header">
-      <div class="history-title">Result history</div>
-      <button class="history-clear" onclick="clearHistory()">Clear history</button>
-    </div>
-    <div class="history-grid" id="history-grid"></div>
-  </div>
-
-  <div class="session glass-panel fade-up" id="sessionBox">
-    <div class="session-title">Remote control</div>
-    <div class="session-grid">
-      <img class="session-qr" id="session-qr" alt="QR code" />
-      <div class="session-meta">
-        <div>Scan the QR code to open the phone remote.</div>
-        <div>Short code: <span class="session-code" id="session-code">—</span></div>
-        <div class="session-link"><a id="session-link" href="#" target="_blank">—</a></div>
-      </div>
-    </div>
-  </div>
-
   <!-- AI Loading Overlay -->
   <div id="ai-loading">
     <div class="sketch"></div>
     <p id="loading-text">Creating your image...</p>
     <img id="unsplash-preview" />
   </div>
-  </div>
-
   </div>
   
 
@@ -2464,11 +2440,7 @@ function applyRemoteCommand(command) {
   }
 
   if (command.type === "refine") {
-    const refineInput = document.getElementById("refine-prompt");
-    if (refineInput) {
-      refineInput.value = command.prompt || "";
-    }
-    refineCurrent(true);
+    refineCurrent(true, command.prompt || "");
     return;
   }
 
@@ -3038,6 +3010,7 @@ if (autoplayToggle) {
 const unifiedSubmit = document.getElementById("unified-submit");
 const unifiedPrompt = document.getElementById("unified-prompt");
 const unifiedMode = document.getElementById("unified-mode");
+const refineQuick = document.getElementById("refine-quick");
 if (unifiedSubmit) unifiedSubmit.addEventListener("click", submitUnified);
 if (unifiedPrompt) {
   unifiedPrompt.addEventListener("keydown", (e) => {
@@ -3048,17 +3021,34 @@ if (unifiedPrompt) {
   });
 }
 if (unifiedMode) unifiedMode.addEventListener("change", syncUnifiedMode);
+if (refineQuick) {
+  refineQuick.addEventListener("click", () => {
+    const promptValue = unifiedPrompt ? unifiedPrompt.value.trim() : "";
+    refineCurrent(false, promptValue);
+  });
+}
 
 function updateRefineStatus(msg) {
   const el = document.getElementById("refine-status");
   if (el) el.textContent = msg || "";
 }
 
-async function refineCurrent(skipConfirm = false) {
-  const promptInput = document.getElementById("refine-prompt");
-  const prompt = promptInput.value.trim();
+function getRefinePrompt(override) {
+  const raw = String(override || "").trim();
+  if (raw) return raw;
+  const unified = document.getElementById("unified-prompt");
+  if (unified && unified.value.trim()) return unified.value.trim();
+  const aiPrompt = document.getElementById("ai-prompt");
+  if (aiPrompt && aiPrompt.value.trim()) return aiPrompt.value.trim();
+  const searchInput = document.getElementById("search-keyword");
+  if (searchInput && searchInput.value.trim()) return searchInput.value.trim();
+  return "";
+}
+
+async function refineCurrent(skipConfirm = false, promptOverride = "") {
+  const prompt = getRefinePrompt(promptOverride);
   if (!prompt) {
-    updateRefineStatus("Please enter a refine prompt.");
+    updateRefineStatus("Enter a refine prompt in the main field.");
     return;
   }
 
