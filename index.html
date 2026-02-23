@@ -2081,8 +2081,8 @@ function startWeatherSlideshow(images) {
   if (!images || !images.length) return;
   clearInterval(weatherSlideTimer);
   weatherImages = images;
-  weatherImageIndex = 0;
-  setWeatherBackground(weatherImages[0]);
+  weatherImageIndex = Math.floor(Math.random() * weatherImages.length);
+  setWeatherBackground(weatherImages[weatherImageIndex]);
   weatherSlideTimer = setInterval(() => {
     weatherImageIndex = (weatherImageIndex + 1) % weatherImages.length;
     setWeatherBackground(weatherImages[weatherImageIndex]);
