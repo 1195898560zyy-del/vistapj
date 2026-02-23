@@ -889,6 +889,9 @@
       opacity: 0;
       pointer-events: none;
       transition: opacity 0.35s ease;
+      position: relative;
+      inset: auto;
+      min-height: 100vh;
     }
 
     body.is-active .layer-ui {
@@ -898,7 +901,7 @@
 
     body.is-active .active-dim {
       opacity: 1;
-      pointer-events: auto;
+      pointer-events: none;
     }
 
     body.is-active .layer-info {
@@ -3171,18 +3174,22 @@ initGalleryInteractions();
 resetAgentLog();
 updateGalleryActive();
 
-const activeDim = document.getElementById("active-dim");
-if (activeDim) {
-  activeDim.addEventListener("click", () => setActiveState(false));
-}
-
 const idleBtn = document.getElementById("btn-idle");
 if (idleBtn) {
   idleBtn.addEventListener("click", () => setActiveState(false));
 }
 
 document.addEventListener("pointerdown", (event) => {
-  if (event.target === activeDim) return;
+  if (document.body.classList.contains("is-active")) {
+    const target = event.target;
+    if (!target.closest(".search-dock") &&
+        !target.closest(".app-side") &&
+        !target.closest(".topbar") &&
+        !target.closest(".ctrls")) {
+      setActiveState(false);
+      return;
+    }
+  }
   registerActivity();
 });
 
