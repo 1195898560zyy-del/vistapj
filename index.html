@@ -105,6 +105,14 @@
       opacity: 1;
     }
 
+    .weather-bg {
+      transition: filter 0.35s ease;
+    }
+
+    body.is-active .weather-bg {
+      filter: blur(6px) brightness(0.7);
+    }
+
     .gallery-active .weather-bg {
       filter: blur(6px) brightness(0.6);
       transition: filter 0.3s ease;
@@ -850,6 +858,53 @@
       overflow-x: hidden;
     }
 
+    .layer {
+      position: fixed;
+      inset: 0;
+    }
+
+    .layer-bg {
+      z-index: 1;
+    }
+
+    .active-dim {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.35);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.35s ease;
+      z-index: 2;
+    }
+
+    .layer-info {
+      z-index: 3;
+      pointer-events: none;
+      transition: opacity 0.35s ease, transform 0.35s ease;
+    }
+
+    .layer-ui {
+      z-index: 4;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.35s ease;
+    }
+
+    body.is-active .layer-ui {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    body.is-active .active-dim {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    body.is-active .layer-info {
+      opacity: 0.35;
+      transform: translateY(8px) scale(0.99);
+    }
+
     h1 {
       font-weight: 600;
     }
@@ -865,6 +920,16 @@
       background: rgba(15, 15, 17, 0.6);
       backdrop-filter: blur(20px);
       border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(-8px);
+      transition: opacity 0.35s ease, transform 0.35s ease;
+    }
+
+    body.is-active .topbar {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0);
     }
 
     .topbar-actions {
@@ -901,6 +966,22 @@
 
     .app-view {
       padding-bottom: 120px;
+    }
+
+    .search-dock {
+      position: fixed;
+      left: 50%;
+      bottom: 24px;
+      width: min(1100px, calc(100vw - 48px));
+      transform: translate(-50%, 120%);
+      opacity: 0;
+      transition: transform 0.45s ease, opacity 0.45s ease;
+      z-index: 5;
+    }
+
+    body.is-active .search-dock {
+      transform: translate(-50%, 0);
+      opacity: 1;
     }
 
     .app-shell {
@@ -1340,24 +1421,18 @@
 
 <body>
 
-  <header class="topbar">
-    <div class="brand">VISTA</div>
-    <div class="topbar-actions">
-      <button class="sidebar-toggle" id="sidebar-toggle" type="button" aria-pressed="false">Panel</button>
-    </div>
-  </header>
-  <div id="presenter-activity" class="presenter-activity" aria-live="polite">
-    <div class="presenter-activity-spinner" aria-hidden="true">
-      <span></span><span></span><span></span>
-    </div>
-    <div id="presenter-activity-text">Working...</div>
+  <div class="layer layer-bg">
+    <section class="weather" id="weather-view">
+      <div class="weather-bg">
+        <div class="weather-bg-layer is-active" id="weather-bg-a"></div>
+        <div class="weather-bg-layer" id="weather-bg-b"></div>
+      </div>
+    </section>
   </div>
 
-  <section class="weather" id="weather-view">
-    <div class="weather-bg">
-      <div class="weather-bg-layer is-active" id="weather-bg-a"></div>
-      <div class="weather-bg-layer" id="weather-bg-b"></div>
-    </div>
+  <div class="active-dim" id="active-dim"></div>
+
+  <div class="layer layer-info">
     <div class="weather-content">
       <div class="weather-title">Local weather wallpaper</div>
       <div class="weather-hero">
@@ -1372,12 +1447,25 @@
       </div>
     </div>
     <div class="weather-source" id="weather-source">Source: Unsplash</div>
-  </section>
+  </div>
 
-  <div id="app-view" class="app-view">
-  <div class="app-shell">
-    <div class="app-main">
-      <section class="command-panel glass-panel fade-up">
+  <div class="layer layer-ui">
+    <header class="topbar">
+      <div class="brand">VISTA</div>
+      <div class="topbar-actions">
+        <button class="sidebar-toggle" id="sidebar-toggle" type="button" aria-pressed="false">Panel</button>
+      </div>
+    </header>
+
+    <div id="presenter-activity" class="presenter-activity" aria-live="polite">
+      <div class="presenter-activity-spinner" aria-hidden="true">
+        <span></span><span></span><span></span>
+      </div>
+      <div id="presenter-activity-text">Working...</div>
+    </div>
+
+    <div class="search-dock">
+      <section class="command-panel glass-panel">
         <div class="panel-title">Search or generate</div>
         <div class="command-row">
           <input id="unified-prompt" type="text" placeholder="Search or generate..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" />
@@ -1395,10 +1483,14 @@
           <button class="primary" id="unified-submit">Go</button>
           <button class="command-refine" id="refine-quick" type="button">Refine</button>
         </div>
+        <div id="refine-status" class="status-text"></div>
       </section>
-      <div id="refine-status" class="status-text"></div>
+    </div>
 
-      <div class="control-panels legacy-panels">
+    <div id="app-view" class="app-view">
+    <div class="app-shell">
+      <div class="app-main">
+        <div class="control-panels legacy-panels">
       <div class="panel">
         <div class="panel-title">Search library</div>
         <div class="panel-row">
@@ -1463,6 +1555,7 @@
     <div class="catalog-wrapper" id="catalog-wrapper" style="display:none;">
       <div class="catalog" id="catalog"></div>
     </div>
+  </div>
   </div>
 
   <aside class="app-side">
@@ -1697,12 +1790,37 @@ function hidePresenterActivity() {
 }
 
 function setGalleryActive(active) {
-  document.body.classList.toggle("gallery-active", Boolean(active));
+  void active;
 }
 
-function updateGalleryActive() {
-  const hasImages = document.querySelectorAll("#gallery img").length > 0;
-  setGalleryActive(hasImages);
+function updateGalleryActive() {}
+
+const ACTIVE_TIMEOUT_MS = 15000;
+let activeTimer = null;
+
+function setActiveState(active) {
+  document.body.classList.toggle("is-active", Boolean(active));
+  if (active) {
+    resetActiveTimer();
+  } else if (activeTimer) {
+    clearTimeout(activeTimer);
+    activeTimer = null;
+  }
+}
+
+function resetActiveTimer() {
+  if (activeTimer) clearTimeout(activeTimer);
+  activeTimer = setTimeout(() => {
+    setActiveState(false);
+  }, ACTIVE_TIMEOUT_MS);
+}
+
+function registerActivity() {
+  if (!document.body.classList.contains("is-active")) {
+    setActiveState(true);
+  } else {
+    resetActiveTimer();
+  }
 }
 
 function getAgentLog() {
@@ -3050,6 +3168,26 @@ initGalleryInteractions();
 resetAgentLog();
 updateGalleryActive();
 
+const activeDim = document.getElementById("active-dim");
+if (activeDim) {
+  activeDim.addEventListener("click", () => setActiveState(false));
+}
+
+document.addEventListener("pointerdown", (event) => {
+  if (event.target === activeDim) return;
+  registerActivity();
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    setActiveState(false);
+    return;
+  }
+  registerActivity();
+});
+
+document.addEventListener("input", registerActivity, true);
+
 window.addEventListener("load", resetAgentLog);
 window.addEventListener("pageshow", (event) => {
   if (event.persisted) resetAgentLog();
@@ -3211,6 +3349,7 @@ function downloadRefined() {
 }
 
 async function sendAgentMessage() {
+  setActiveState(true);
   const input = document.getElementById("agent-input");
   const button = document.getElementById("agent-send");
   if (!input) return;
@@ -3407,19 +3546,7 @@ function initSidebarToggle() {
 }
 
 function initViewToggle() {
-  const VIEW_KEY = "vista_view_mode";
-  const weatherBtn = document.getElementById("view-weather");
-  const appBtn = document.getElementById("view-app");
-
-  if (weatherBtn) weatherBtn.addEventListener("click", () => setViewMode("weather"));
-  if (appBtn) appBtn.addEventListener("click", () => setViewMode("app"));
-
-  const saved = localStorage.getItem(VIEW_KEY) || "app";
-  if (weatherBtn || appBtn) {
-    setViewMode(saved);
-  } else {
-    setViewMode("app");
-  }
+  setViewMode("app");
 }
 
 function initAgentBubble() {
