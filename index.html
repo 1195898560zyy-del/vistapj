@@ -105,6 +105,16 @@
       opacity: 1;
     }
 
+    .gallery-active .weather-bg {
+      filter: blur(6px) brightness(0.6);
+      transition: filter 0.3s ease;
+    }
+
+    .gallery-active .weather-content {
+      opacity: 0.6;
+      transition: opacity 0.3s ease;
+    }
+
     @keyframes slowZoom {
       0% { transform: scale(1); }
       50% { transform: scale(1.05); }
@@ -886,29 +896,7 @@
     }
 
     .view-toggle {
-      position: static;
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 999px;
-      padding: 4px;
-      gap: 0;
-      z-index: auto;
-    }
-
-    .view-toggle button {
-      border-radius: 999px;
-      border: none;
-      background: transparent;
-      color: var(--muted);
-      font-weight: 500;
-      padding: 8px 14px;
-      transition: all 0.2s cubic-bezier(.4,0,.2,1);
-    }
-
-    .view-toggle button.active {
-      background: rgba(255, 255, 255, 0.16);
-      color: var(--text);
-      border-color: transparent;
+      display: none;
     }
 
     .app-view {
@@ -1356,10 +1344,6 @@
     <div class="brand">VISTA</div>
     <div class="topbar-actions">
       <button class="sidebar-toggle" id="sidebar-toggle" type="button" aria-pressed="false">Panel</button>
-      <div class="view-toggle">
-        <button id="view-weather" class="active">Weather</button>
-        <button id="view-app">Gallery</button>
-      </div>
     </div>
   </header>
   <div id="presenter-activity" class="presenter-activity" aria-live="polite">
@@ -1390,7 +1374,7 @@
     <div class="weather-source" id="weather-source">Source: Unsplash</div>
   </section>
 
-  <div id="app-view" class="app-view view-hidden">
+  <div id="app-view" class="app-view">
   <div class="app-shell">
     <div class="app-main">
       <section class="command-panel glass-panel fade-up">
@@ -1709,6 +1693,15 @@ function hidePresenterActivity() {
   if (presenterActivityCount === 0) {
     el.classList.remove("visible");
   }
+}
+
+function setGalleryActive(active) {
+  document.body.classList.toggle("gallery-active", Boolean(active));
+}
+
+function updateGalleryActive() {
+  const hasImages = document.querySelectorAll("#gallery img").length > 0;
+  setGalleryActive(hasImages);
 }
 
 function getAgentLog() {
@@ -2529,6 +2522,7 @@ function clearGallery() {
   document.getElementById("catalog").innerHTML = "";
   document.getElementById("catalog-wrapper").style.display = "none";
   setStatus("");
+  setGalleryActive(false);
 }
 
 function addSpinner() {
@@ -2537,6 +2531,7 @@ function addSpinner() {
   const s = document.createElement("div");
   s.className = "spinner";
   g.appendChild(s);
+  setGalleryActive(false);
 }
 
 function removeSpinner() {
@@ -2596,6 +2591,7 @@ function createImg(src, alt, active = false, source) {
   if (active) img.classList.add("active");
   document.getElementById("gallery").appendChild(img);
   updateGallerySource();
+  updateGalleryActive();
 }
 
 function getImages() {
@@ -3037,6 +3033,7 @@ initAgentVoice();
 initInfiniteSearch();
 initGalleryInteractions();
 resetAgentLog();
+updateGalleryActive();
 
 window.addEventListener("load", resetAgentLog);
 window.addEventListener("pageshow", (event) => {
@@ -3361,15 +3358,11 @@ if (agentInput) {
 }
 
 function setViewMode(mode) {
-  const weatherBtn = document.getElementById("view-weather");
-  const appBtn = document.getElementById("view-app");
   const weatherView = document.getElementById("weather-view");
   const appView = document.getElementById("app-view");
-  const showWeather = mode === "weather";
-  if (weatherView) weatherView.classList.toggle("view-hidden", !showWeather);
-  if (appView) appView.classList.toggle("view-hidden", showWeather);
-  if (weatherBtn) weatherBtn.classList.toggle("active", showWeather);
-  if (appBtn) appBtn.classList.toggle("active", !showWeather);
+  const showApp = mode !== "weather";
+  if (weatherView) weatherView.classList.remove("view-hidden");
+  if (appView) appView.classList.toggle("view-hidden", !showApp);
   localStorage.setItem("vista_view_mode", mode);
 }
 
@@ -3397,15 +3390,19 @@ function initSidebarToggle() {
 }
 
 function initViewToggle() {
+  const VIEW_KEY = "vista_view_mode";
   const weatherBtn = document.getElementById("view-weather");
   const appBtn = document.getElementById("view-app");
-  const VIEW_KEY = "vista_view_mode";
 
   if (weatherBtn) weatherBtn.addEventListener("click", () => setViewMode("weather"));
   if (appBtn) appBtn.addEventListener("click", () => setViewMode("app"));
 
-  const saved = localStorage.getItem(VIEW_KEY) || "weather";
-  setViewMode(saved);
+  const saved = localStorage.getItem(VIEW_KEY) || "app";
+  if (weatherBtn || appBtn) {
+    setViewMode(saved);
+  } else {
+    setViewMode("app");
+  }
 }
 
 function initAgentBubble() {
