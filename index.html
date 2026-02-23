@@ -1957,7 +1957,15 @@ function formatWeatherTime(dt, tz) {
 }
 
 function weatherToQuery(main = "", description = "", isNight = false, city = "") {
-  const base = (description || main || "weather").trim() || "weather";
+  const raw = (description || main || "weather").trim() || "weather";
+  const lower = raw.toLowerCase();
+  const needsSky = !lower.includes("sky");
+  const needsCloud = !lower.includes("cloud");
+  const extras = [
+    needsCloud ? "clouds" : "",
+    needsSky ? "sky" : ""
+  ].filter(Boolean).join(" ");
+  const base = extras ? `${raw} ${extras}` : raw;
   return isNight ? `${base} night` : base;
 }
 
@@ -2057,8 +2065,8 @@ async function applyWeatherBackdrop(data, cachedImages) {
     let images = res.images || [];
     if (!images.length) {
       const fallbackQuery = isNight
-        ? "night city lights skyline photo"
-        : "day city skyline photo";
+        ? "night clouds sky photo"
+        : "clouds sky photo";
       r = await fetch(
         `${API_BASE}/api/unsplash?q=${encodeURIComponent(fallbackQuery)}&ratio=${encodeURIComponent(ratio)}&w=${targetW}&h=${targetH}`
       );
