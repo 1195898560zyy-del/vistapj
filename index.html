@@ -989,7 +989,7 @@
     }
 
     .app-shell {
-      max-width: 1100px;
+      max-width: 980px;
       margin: 0 auto;
       padding: 32px 28px 80px;
       display: grid;
@@ -1171,7 +1171,7 @@
 
     #gallery {
       width: 100%;
-      max-width: 1100px;
+      max-width: 900px;
       height: 420px;
       margin: 0;
       background: rgba(255, 255, 255, 0.02);
@@ -1185,14 +1185,7 @@
       max-height: 94%;
       border-radius: 20px;
       box-shadow: 0 24px 50px rgba(0, 0, 0, 0.35);
-    }
-
-    #gallery.cover img {
-      width: 100%;
-      height: 100%;
-      max-width: 100%;
-      max-height: 100%;
-      object-fit: cover;
+      object-fit: contain;
     }
 
     .gallery-source {
@@ -1457,7 +1450,7 @@
     <header class="topbar">
       <div class="brand">VISTA</div>
       <div class="topbar-actions">
-        <button class="sidebar-toggle" id="sidebar-toggle" type="button" aria-pressed="false">Panel</button>
+        <button class="sidebar-toggle" id="sidebar-toggle" type="button" aria-pressed="false">Settings</button>
       </div>
     </header>
 
@@ -1587,10 +1580,12 @@
             <option value="5000">Slow (5s)</option>
           </select>
 
-          <label for="fit-select">Fit</label>
-          <select id="fit-select">
-            <option value="contain" selected>Contain</option>
-            <option value="cover">Cover</option>
+          <label for="load-limit">Load</label>
+          <select id="load-limit">
+            <option value="20">20</option>
+            <option value="40" selected>40</option>
+            <option value="80">80</option>
+            <option value="120">120</option>
           </select>
 
           <label for="autoplay-toggle">Autoplay</label>
@@ -2730,23 +2725,33 @@ function setGalleryLoader(visible, text) {
   el.classList.toggle("visible", visible);
 }
 
+function getLoadLimit() {
+  const select = document.getElementById("load-limit");
+  if (!select) return 40;
+  const value = parseInt(select.value, 10);
+  return Number.isFinite(value) ? value : 40;
+}
+
 function resetSearchSession(mode, keyword, ratio) {
   searchSessionId += 1;
+  const limit = getLoadLimit();
+  const startPage = Math.floor(Math.random() * 3) + 1;
   searchState = {
     id: searchSessionId,
     mode,
     keyword,
     ratio,
-    unsplashPage: 1,
+    unsplashPage: startPage,
     unsplashTotal: 1,
-    pexelsPage: 1,
-    pixabayPage: 1,
+    pexelsPage: startPage,
+    pixabayPage: startPage,
     pixabayTotal: 1,
     loading: false,
     exhausted: false,
     loaded: 0,
     emptyStreak: 0,
-    seen: new Set()
+    seen: new Set(),
+    max: limit
   };
 }
 
@@ -2799,10 +2804,14 @@ function appendSearchResults(urls, sourceLabel) {
   if (!searchState) return 0;
   let added = 0;
   urls.forEach((url) => {
+    if (searchState.max && searchState.loaded >= searchState.max) return;
     if (!url || searchState.seen.has(url)) return;
     searchState.seen.add(url);
     createImg(url, searchState.keyword, false, sourceLabel);
     added += 1;
+    if (searchState.max && searchState.loaded + added >= searchState.max) {
+      searchState.exhausted = true;
+    }
   });
   searchState.loaded += added;
   return added;
@@ -3199,16 +3208,10 @@ window.addEventListener("pageshow", (event) => {
 });
 
 const speedSelect = document.getElementById("speed-select");
-const fitSelect = document.getElementById("fit-select");
+const loadLimitSelect = document.getElementById("load-limit");
 const autoplayToggle = document.getElementById("autoplay-toggle");
 
-const FIT_KEY = "vista_fit_mode";
-
-function applyFitMode(mode) {
-  const gallery = document.getElementById("gallery");
-  if (!gallery) return;
-  gallery.classList.toggle("cover", mode === "cover");
-}
+const LOAD_LIMIT_KEY = "vista_load_limit";
 
 if (speedSelect) {
   speedSelect.addEventListener("change", () => {
@@ -3222,14 +3225,16 @@ if (speedSelect) {
   });
 }
 
-if (fitSelect) {
-  const savedFit = localStorage.getItem(FIT_KEY) || "contain";
-  fitSelect.value = savedFit;
-  applyFitMode(savedFit);
-  fitSelect.addEventListener("change", () => {
-    const mode = fitSelect.value || "contain";
-    localStorage.setItem(FIT_KEY, mode);
-    applyFitMode(mode);
+if (loadLimitSelect) {
+  const savedLimit = parseInt(localStorage.getItem(LOAD_LIMIT_KEY), 10);
+  if (Number.isFinite(savedLimit)) {
+    loadLimitSelect.value = String(savedLimit);
+  }
+  loadLimitSelect.addEventListener("change", () => {
+    const value = parseInt(loadLimitSelect.value, 10);
+    if (Number.isFinite(value)) {
+      localStorage.setItem(LOAD_LIMIT_KEY, String(value));
+    }
   });
 }
 
