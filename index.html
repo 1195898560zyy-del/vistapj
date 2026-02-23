@@ -974,18 +974,31 @@
 
     .search-dock {
       position: fixed;
-      left: 50%;
-      bottom: 24px;
-      width: min(1100px, calc(100vw - 48px));
-      transform: translate(-50%, 120%);
+      left: 24px;
+      top: 50%;
+      width: min(320px, calc(100vw - 48px));
+      transform: translate(-120%, -50%);
       opacity: 0;
       transition: transform 0.45s ease, opacity 0.45s ease;
       z-index: 5;
     }
 
     body.is-active .search-dock {
-      transform: translate(-50%, 0);
+      transform: translate(0, -50%);
       opacity: 1;
+    }
+
+    .search-dock .command-row {
+      grid-template-columns: 1fr;
+    }
+
+    .search-dock .command-row > * {
+      width: 100%;
+    }
+
+    .search-dock .command-refine,
+    .search-dock .primary {
+      justify-self: stretch;
     }
 
     .app-shell {
