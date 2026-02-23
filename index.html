@@ -1114,6 +1114,14 @@
       box-shadow: 0 24px 50px rgba(0, 0, 0, 0.35);
     }
 
+    #gallery.cover img {
+      width: 100%;
+      height: 100%;
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: cover;
+    }
+
     .gallery-source {
       position: absolute;
       left: 16px;
@@ -1486,21 +1494,27 @@
         </div>
       </div>
 
-      <div class="sidebar-footer">
-        <div class="settings glass-panel fade-up" id="settings">
-          <div class="settings-title">Playback settings</div>
-          <div class="settings-row">
-            <label for="speed-select">Speed</label>
-            <select id="speed-select">
-              <option value="2000">Fast (2s)</option>
-              <option value="3000" selected>Normal (3s)</option>
-              <option value="5000">Slow (5s)</option>
-            </select>
+    <div class="sidebar-footer">
+      <div class="settings glass-panel fade-up" id="settings">
+        <div class="settings-title">Playback settings</div>
+        <div class="settings-row">
+          <label for="speed-select">Speed</label>
+          <select id="speed-select">
+            <option value="2000">Fast (2s)</option>
+            <option value="3000" selected>Normal (3s)</option>
+            <option value="5000">Slow (5s)</option>
+          </select>
 
-            <label for="autoplay-toggle">Autoplay</label>
-            <input id="autoplay-toggle" type="checkbox" />
-          </div>
+          <label for="fit-select">Fit</label>
+          <select id="fit-select">
+            <option value="contain" selected>Contain</option>
+            <option value="cover">Cover</option>
+          </select>
+
+          <label for="autoplay-toggle">Autoplay</label>
+          <input id="autoplay-toggle" type="checkbox" />
         </div>
+      </div>
 
         <div class="session glass-panel fade-up" id="sessionBox">
           <div class="session-title">Remote control</div>
@@ -3030,7 +3044,16 @@ window.addEventListener("pageshow", (event) => {
 });
 
 const speedSelect = document.getElementById("speed-select");
+const fitSelect = document.getElementById("fit-select");
 const autoplayToggle = document.getElementById("autoplay-toggle");
+
+const FIT_KEY = "vista_fit_mode";
+
+function applyFitMode(mode) {
+  const gallery = document.getElementById("gallery");
+  if (!gallery) return;
+  gallery.classList.toggle("cover", mode === "cover");
+}
 
 if (speedSelect) {
   speedSelect.addEventListener("change", () => {
@@ -3041,6 +3064,17 @@ if (speedSelect) {
         startSlideshow();
       }
     }
+  });
+}
+
+if (fitSelect) {
+  const savedFit = localStorage.getItem(FIT_KEY) || "contain";
+  fitSelect.value = savedFit;
+  applyFitMode(savedFit);
+  fitSelect.addEventListener("change", () => {
+    const mode = fitSelect.value || "contain";
+    localStorage.setItem(FIT_KEY, mode);
+    applyFitMode(mode);
   });
 }
 
