@@ -3180,16 +3180,6 @@ if (idleBtn) {
 }
 
 document.addEventListener("pointerdown", (event) => {
-  if (document.body.classList.contains("is-active")) {
-    const target = event.target;
-    if (!target.closest(".search-dock") &&
-        !target.closest(".app-side") &&
-        !target.closest(".topbar") &&
-        !target.closest(".ctrls")) {
-      setActiveState(false);
-      return;
-    }
-  }
   registerActivity();
 });
 
