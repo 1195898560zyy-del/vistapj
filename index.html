@@ -954,12 +954,14 @@
       display: flex;
       flex-direction: column;
       gap: 24px;
-      overflow: hidden;
+      overflow-y: auto;
+      overflow-x: hidden;
       z-index: 8;
     }
 
     .app-side * {
       min-width: 0;
+      box-sizing: border-box;
     }
 
     .app-side .glass-panel {
@@ -982,7 +984,7 @@
     }
 
     .sidebar-scroll {
-      flex: 1;
+      flex: none;
       overflow-y: auto;
       overflow-x: hidden;
       display: grid;
@@ -995,6 +997,7 @@
       gap: 16px;
       padding-top: 8px;
       border-top: 1px solid rgba(255, 255, 255, 0.06);
+      overflow-x: hidden;
     }
 
     .sidebar-collapsed .app-shell {
@@ -1178,12 +1181,14 @@
 
     .history-keyword {
       color: var(--text);
+      overflow-wrap: anywhere;
     }
 
     .history-meta {
       color: var(--muted);
       font-size: 12px;
       letter-spacing: 0.2px;
+      overflow-wrap: anywhere;
     }
 
     .history-restore {
@@ -1232,6 +1237,7 @@
 
     .session-meta {
       color: var(--muted);
+      overflow-wrap: anywhere;
     }
 
     .session-code {
