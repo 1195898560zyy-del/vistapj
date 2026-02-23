@@ -110,11 +110,11 @@
     }
 
     body.is-active .weather-bg {
-      filter: blur(6px) brightness(0.7);
+      filter: blur(4px) brightness(0.8);
     }
 
     .gallery-active .weather-bg {
-      filter: blur(6px) brightness(0.6);
+      filter: blur(4px) brightness(0.7);
       transition: filter 0.3s ease;
     }
 
@@ -189,7 +189,7 @@
       bottom: 18px;
       padding: 6px 10px;
       border-radius: 999px;
-      background: rgba(0, 0, 0, 0.35);
+      background: rgba(0, 0, 0, 0.22);
       border: 1px solid rgba(255, 255, 255, 0.2);
       color: #f8fafc;
       font-size: 11px;
@@ -870,7 +870,7 @@
     .active-dim {
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.35);
+      background: rgba(0, 0, 0, 0.22);
       opacity: 0;
       pointer-events: none;
       transition: opacity 0.35s ease;
@@ -1547,6 +1547,7 @@
         <button class="ctrl-btn" onclick="stopSlideshow()">⏸</button>
         <button class="ctrl-btn" onclick="toggleFullscreen()">⛶</button>
         <button class="ctrl-btn" onclick="downloadCurrent()">↓</button>
+        <button class="ctrl-btn secondary" id="btn-idle">Idle</button>
         <button class="ctrl-btn danger" onclick="clearGallery()">✕</button>
       </div>
       <div id="gallery-loader" class="gallery-loader">Loading more...</div>
@@ -1795,12 +1796,12 @@ function setGalleryActive(active) {
 
 function updateGalleryActive() {}
 
-const ACTIVE_TIMEOUT_MS = 15000;
+const ACTIVE_TIMEOUT_MS = 0;
 let activeTimer = null;
 
 function setActiveState(active) {
   document.body.classList.toggle("is-active", Boolean(active));
-  if (active) {
+  if (active && ACTIVE_TIMEOUT_MS > 0) {
     resetActiveTimer();
   } else if (activeTimer) {
     clearTimeout(activeTimer);
@@ -1809,6 +1810,7 @@ function setActiveState(active) {
 }
 
 function resetActiveTimer() {
+  if (ACTIVE_TIMEOUT_MS <= 0) return;
   if (activeTimer) clearTimeout(activeTimer);
   activeTimer = setTimeout(() => {
     setActiveState(false);
@@ -3171,6 +3173,11 @@ updateGalleryActive();
 const activeDim = document.getElementById("active-dim");
 if (activeDim) {
   activeDim.addEventListener("click", () => setActiveState(false));
+}
+
+const idleBtn = document.getElementById("btn-idle");
+if (idleBtn) {
+  idleBtn.addEventListener("click", () => setActiveState(false));
 }
 
 document.addEventListener("pointerdown", (event) => {
