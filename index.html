@@ -649,43 +649,13 @@
       text-align: left;
     }
 
-    .history-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 10px;
-    }
-
-    .history-title {
-      font-size: 16px;
-      font-weight: 700;
-      color: #0f172a;
-    }
-
     .history-clear {
       border-radius: 999px;
-      border: 1px solid #cbd5e1;
-      background: #f8fafc;
-      color: #334155;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text);
       padding: 6px 12px;
       cursor: pointer;
-    }
-
-    .history-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 12px;
-    }
-
-    .history-card {
-      border: 1px solid #e2e8f0;
-      border-radius: 12px;
-      padding: 10px;
-      background: #f8fafc;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
     }
 
     .history-card-head {
@@ -704,39 +674,11 @@
       color: #64748b;
     }
 
-    .history-thumbs {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 6px;
-    }
-
-    .history-thumbs img {
-      width: 100%;
-      height: 70px;
-      border-radius: 8px;
-      object-fit: cover;
-    }
-
     .history-footer {
       display: flex;
       justify-content: space-between;
       align-items: center;
       gap: 8px;
-    }
-
-    .history-count {
-      font-size: 12px;
-      color: #475569;
-    }
-
-    .history-restore {
-      border-radius: 999px;
-      border: none;
-      background: #2563eb;
-      color: white;
-      padding: 6px 12px;
-      cursor: pointer;
-      font-size: 12px;
     }
 
     .history-empty {
@@ -895,6 +837,7 @@
       color: var(--text);
       padding: 0;
       text-align: left;
+      overflow-x: hidden;
     }
 
     h1 {
@@ -1003,14 +946,55 @@
 
     .app-side {
       position: fixed;
-      top: 92px;
-      right: 24px;
-      width: 320px;
-      max-height: calc(100vh - 140px);
-      display: grid;
+      top: 0;
+      right: 0;
+      width: 360px;
+      height: 100vh;
+      padding: 92px 20px 20px;
+      display: flex;
+      flex-direction: column;
       gap: 24px;
-      overflow: auto;
+      overflow: hidden;
       z-index: 8;
+    }
+
+    .app-side * {
+      min-width: 0;
+    }
+
+    .app-side .glass-panel {
+      box-shadow: none;
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .sidebar-header {
+      display: grid;
+      gap: 6px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .sidebar-title {
+      font-size: 12px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .sidebar-scroll {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      display: grid;
+      gap: 12px;
+      padding-right: 4px;
+    }
+
+    .sidebar-footer {
+      display: grid;
+      gap: 16px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
     }
 
     .sidebar-collapsed .app-shell {
@@ -1177,53 +1161,38 @@
       margin: 0;
     }
 
-    .history-header {
-      margin-bottom: 18px;
-    }
-
-    .history-title {
-      color: var(--text);
-      font-weight: 500;
-    }
-
-    .history-clear {
-      border-radius: 14px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      background: rgba(255, 255, 255, 0.08);
-      color: var(--text);
-      font-weight: 500;
-    }
-
     .history-grid {
-      display: flex;
-      gap: 16px;
-      overflow-x: auto;
-      padding-bottom: 8px;
+      display: grid;
+      gap: 12px;
     }
 
     .history-card {
-      min-width: 260px;
-      border-radius: 18px;
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
       padding: 12px;
+      display: grid;
+      gap: 10px;
+      cursor: pointer;
     }
 
-    .history-keyword,
-    .history-count {
+    .history-keyword {
       color: var(--text);
     }
 
     .history-meta {
       color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0.2px;
     }
 
     .history-restore {
-      border-radius: 14px;
-      background: rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.06);
       color: var(--text);
       border: 1px solid rgba(255, 255, 255, 0.08);
       font-weight: 500;
+      justify-self: start;
     }
 
     .catalog-wrapper {
@@ -1483,37 +1452,42 @@
   </div>
 
   <aside class="app-side">
-    <div class="settings glass-panel fade-up" id="settings">
-      <div class="settings-title">Playback settings</div>
-      <div class="settings-row">
-        <label for="speed-select">Speed</label>
-        <select id="speed-select">
-          <option value="2000">Fast (2s)</option>
-          <option value="3000" selected>Normal (3s)</option>
-          <option value="5000">Slow (5s)</option>
-        </select>
+    <div class="sidebar-header">
+      <div class="sidebar-title">Result history</div>
+      <button class="history-clear" onclick="clearHistory()">Clear history</button>
+    </div>
 
-        <label for="autoplay-toggle">Autoplay</label>
-        <input id="autoplay-toggle" type="checkbox" />
+    <div class="sidebar-scroll">
+      <div class="history glass-panel fade-up" id="history">
+        <div class="history-grid" id="history-grid"></div>
       </div>
     </div>
 
-    <div class="history glass-panel fade-up" id="history">
-      <div class="history-header">
-        <div class="history-title">Result history</div>
-        <button class="history-clear" onclick="clearHistory()">Clear history</button>
-      </div>
-      <div class="history-grid" id="history-grid"></div>
-    </div>
+    <div class="sidebar-footer">
+      <div class="settings glass-panel fade-up" id="settings">
+        <div class="settings-title">Playback settings</div>
+        <div class="settings-row">
+          <label for="speed-select">Speed</label>
+          <select id="speed-select">
+            <option value="2000">Fast (2s)</option>
+            <option value="3000" selected>Normal (3s)</option>
+            <option value="5000">Slow (5s)</option>
+          </select>
 
-    <div class="session glass-panel fade-up" id="sessionBox">
-      <div class="session-title">Remote control</div>
-      <div class="session-grid">
-        <img class="session-qr" id="session-qr" alt="QR code" />
-        <div class="session-meta">
-          <div>Scan the QR code to open the phone remote.</div>
-          <div>Short code: <span class="session-code" id="session-code">—</span></div>
-          <div class="session-link"><a id="session-link" href="#" target="_blank">—</a></div>
+          <label for="autoplay-toggle">Autoplay</label>
+          <input id="autoplay-toggle" type="checkbox" />
+        </div>
+      </div>
+
+      <div class="session glass-panel fade-up" id="sessionBox">
+        <div class="session-title">Remote control</div>
+        <div class="session-grid">
+          <img class="session-qr" id="session-qr" alt="QR code" />
+          <div class="session-meta">
+            <div>Scan the QR code to open the phone remote.</div>
+            <div>Short code: <span class="session-code" id="session-code">—</span></div>
+            <div class="session-link"><a id="session-link" href="#" target="_blank">—</a></div>
+          </div>
         </div>
       </div>
     </div>
@@ -2277,6 +2251,7 @@ function renderHistory(history = loadHistory()) {
   history.forEach((entry) => {
     const card = document.createElement("div");
     card.className = "history-card";
+    card.addEventListener("click", () => restoreHistory(entry.id));
 
     const head = document.createElement("div");
     head.className = "history-card-head";
@@ -2289,45 +2264,33 @@ function renderHistory(history = loadHistory()) {
     meta.className = "history-meta";
     const modeLabel = entry.mode || "unknown";
     const refineCount = entry.refines ? ` · ${entry.refines} refine${entry.refines > 1 ? "s" : ""}` : "";
-    meta.textContent = `${modeLabel} · ${formatHistoryTime(entry.ts)}${refineCount}`;
+    const totalText = entry.total && entry.total !== (entry.urls || []).length
+      ? `${(entry.urls || []).length}/${entry.total}`
+      : `${(entry.urls || []).length}`;
+    meta.textContent = `${modeLabel} · ${formatHistoryTime(entry.ts)} · ${totalText} images${refineCount}`;
 
     head.appendChild(keyword);
     head.appendChild(meta);
 
-    const thumbs = document.createElement("div");
-    thumbs.className = "history-thumbs";
-    (entry.urls || []).forEach((url) => {
-      const img = document.createElement("img");
-      img.src = url;
-      img.alt = entry.keyword || "history";
-      img.loading = "lazy";
-      thumbs.appendChild(img);
-    });
-
     const footer = document.createElement("div");
     footer.className = "history-footer";
-
-    const count = document.createElement("span");
-    count.className = "history-count";
-    const totalText = entry.total && entry.total !== (entry.urls || []).length
-      ? `${(entry.urls || []).length}/${entry.total}`
-      : `${(entry.urls || []).length}`;
-    count.textContent = `${totalText} images`;
 
     const restore = document.createElement("button");
     restore.className = "history-restore";
     restore.textContent = "Restore";
-    restore.addEventListener("click", () => restoreHistory(entry.id));
+    restore.addEventListener("click", (event) => {
+      event.stopPropagation();
+      restoreHistory(entry.id);
+    });
 
-    footer.appendChild(count);
     footer.appendChild(restore);
 
     card.appendChild(head);
-    card.appendChild(thumbs);
     card.appendChild(footer);
     grid.appendChild(card);
   });
 }
+
 
 function restoreHistory(id) {
   const history = loadHistory();
@@ -3534,4 +3497,3 @@ function initGalleryInteractions() {
 
 </body>
 </html>
-
