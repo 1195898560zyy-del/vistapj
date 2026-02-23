@@ -914,10 +914,32 @@
       border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     }
 
+    .topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
     .brand {
       font-size: 18px;
       font-weight: 600;
       letter-spacing: 0.3px;
+    }
+
+    .sidebar-toggle {
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text);
+      padding: 8px 14px;
+      font-size: 12px;
+      letter-spacing: 0.4px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .sidebar-toggle:hover {
+      background: rgba(255, 255, 255, 0.12);
     }
 
     .view-toggle {
@@ -958,6 +980,7 @@
       grid-template-columns: minmax(0, 1fr) 320px;
       gap: 32px;
       align-items: start;
+      transition: grid-template-columns 0.25s ease;
     }
 
     .glass-panel {
@@ -982,6 +1005,14 @@
     .app-side {
       display: grid;
       gap: 24px;
+    }
+
+    .sidebar-collapsed .app-shell {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .sidebar-collapsed .app-side {
+      display: none;
     }
 
     .refine-quick {
@@ -1280,6 +1311,11 @@
         gap: 12px;
       }
 
+      .topbar-actions {
+        width: 100%;
+        justify-content: space-between;
+      }
+
       .app-shell {
         padding: 32px 20px 100px;
         grid-template-columns: 1fr;
@@ -1303,9 +1339,12 @@
 
   <header class="topbar">
     <div class="brand">VISTA</div>
-    <div class="view-toggle">
-      <button id="view-weather" class="active">Weather</button>
-      <button id="view-app">Gallery</button>
+    <div class="topbar-actions">
+      <button class="sidebar-toggle" id="sidebar-toggle" type="button" aria-pressed="false">Panel</button>
+      <div class="view-toggle">
+        <button id="view-weather" class="active">Weather</button>
+        <button id="view-app">Gallery</button>
+      </div>
     </div>
   </header>
   <div id="presenter-activity" class="presenter-activity" aria-live="polite">
@@ -2978,6 +3017,7 @@ renderHistory();
 initSession();
 initWeather();
 initViewToggle();
+initSidebarToggle();
 initUnifiedControls();
 initAgentBubble();
 initAgentVoice();
@@ -3303,6 +3343,24 @@ function setViewMode(mode) {
 function refreshWeather() {
   localStorage.removeItem(WEATHER_CACHE_KEY);
   initWeather();
+}
+
+function setSidebarCollapsed(collapsed) {
+  document.body.classList.toggle("sidebar-collapsed", collapsed);
+  localStorage.setItem("vista_sidebar_collapsed", collapsed ? "1" : "0");
+  const btn = document.getElementById("sidebar-toggle");
+  if (btn) btn.setAttribute("aria-pressed", collapsed ? "true" : "false");
+}
+
+function initSidebarToggle() {
+  const btn = document.getElementById("sidebar-toggle");
+  if (!btn) return;
+  const saved = localStorage.getItem("vista_sidebar_collapsed") === "1";
+  setSidebarCollapsed(saved);
+  btn.addEventListener("click", () => {
+    const isCollapsed = document.body.classList.contains("sidebar-collapsed");
+    setSidebarCollapsed(!isCollapsed);
+  });
 }
 
 function initViewToggle() {
