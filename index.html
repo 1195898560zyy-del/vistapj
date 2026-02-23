@@ -1648,6 +1648,7 @@ let currentKeyword = "";
 let currentPage = 1;
 let totalPages = 1;
 let searchState = null;
+let searchSessionId = 0;
 let searchScrollTimer = null;
 
 let sessionID = null;
@@ -2606,7 +2607,9 @@ function setGalleryLoader(visible, text) {
 }
 
 function resetSearchSession(mode, keyword, ratio) {
+  searchSessionId += 1;
   searchState = {
+    id: searchSessionId,
     mode,
     keyword,
     ratio,
@@ -2621,6 +2624,12 @@ function resetSearchSession(mode, keyword, ratio) {
     emptyStreak: 0,
     seen: new Set()
   };
+}
+
+function cancelSearchSession() {
+  searchSessionId += 1;
+  searchState = null;
+  setGalleryLoader(false);
 }
 
 async function fetchUnsplashBatch(page, keyword, ratio) {
@@ -2677,6 +2686,7 @@ function appendSearchResults(urls, sourceLabel) {
 
 async function loadNextSearchBatch(isInitial = false) {
   if (!searchState || searchState.loading || searchState.exhausted) return;
+  const activeSession = searchSessionId;
   searchState.loading = true;
   if (isInitial) addSpinner();
   setGalleryLoader(true, isInitial ? "Loading images..." : "Loading more...");
@@ -2685,6 +2695,7 @@ async function loadNextSearchBatch(isInitial = false) {
     let added = 0;
     if (searchState.mode === "unsplash") {
       const res = await fetchUnsplashBatch(searchState.unsplashPage, searchState.keyword, searchState.ratio);
+      if (activeSession !== searchSessionId) return;
       searchState.unsplashTotal = res.totalPages || 1;
       const shuffled = shuffleArray(res.images || []);
       added += appendSearchResults(shuffled, "Unsplash");
@@ -2694,11 +2705,13 @@ async function loadNextSearchBatch(isInitial = false) {
       }
     } else if (searchState.mode === "pexels") {
       const res = await fetchPexelsBatch(searchState.pexelsPage, searchState.keyword, searchState.ratio);
+      if (activeSession !== searchSessionId) return;
       const shuffled = shuffleArray(res.images || []);
       added += appendSearchResults(shuffled, "Pexels");
       searchState.pexelsPage += 1;
     } else if (searchState.mode === "pixabay") {
       const res = await fetchPixabayBatch(searchState.pixabayPage, searchState.keyword, searchState.ratio);
+      if (activeSession !== searchSessionId) return;
       searchState.pixabayTotal = res.totalPages || 1;
       const shuffled = shuffleArray(res.images || []);
       added += appendSearchResults(shuffled, "Pixabay");
@@ -2712,6 +2725,7 @@ async function loadNextSearchBatch(isInitial = false) {
         fetchPexelsBatch(searchState.pexelsPage, searchState.keyword, searchState.ratio),
         fetchPixabayBatch(searchState.pixabayPage, searchState.keyword, searchState.ratio)
       ]);
+      if (activeSession !== searchSessionId) return;
       searchState.unsplashTotal = uRes.totalPages || 1;
       searchState.pixabayTotal = xRes.totalPages || 1;
       const uAdded = appendSearchResults(shuffleArray(uRes.images || []), "Unsplash");
@@ -2961,6 +2975,7 @@ function searchOrGenerate() {
 
 async function generateAi() {
   stopSlideshow();
+  cancelSearchSession();
 
   const promptInput = document.getElementById("ai-prompt");
   const prompt = promptInput.value.trim();
@@ -3291,6 +3306,7 @@ function normalizeAgentMessage(text) {
 
 function applyAgentResult(tool, result, args, fallbackText) {
   if (tool === "search_library") {
+    cancelSearchSession();
     const images = result.images || [];
     if (!images.length) {
       setStatus("No images found.");
@@ -3306,6 +3322,7 @@ function applyAgentResult(tool, result, args, fallbackText) {
   }
 
   if (tool === "generate_ai") {
+    cancelSearchSession();
     const images = result.images || [];
     if (!images.length) {
       setStatus("No images generated.");
