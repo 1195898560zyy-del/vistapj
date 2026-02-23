@@ -964,16 +964,29 @@
       box-sizing: border-box;
     }
 
-    .app-side .glass-panel {
+    .sidebar-shell {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      padding: 16px;
+      border-radius: 22px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+    }
+
+    .sidebar-shell .glass-panel {
       box-shadow: none;
       background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
     }
 
     .sidebar-header {
       display: grid;
       gap: 6px;
-      padding-bottom: 8px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     }
 
     .sidebar-title {
@@ -996,8 +1009,8 @@
     .sidebar-footer {
       display: grid;
       gap: 16px;
-      padding-top: 8px;
-      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      padding-top: 10px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
       overflow-x: hidden;
     }
 
@@ -1459,41 +1472,43 @@
   </div>
 
   <aside class="app-side">
-    <div class="sidebar-header">
-      <div class="sidebar-title">Result history</div>
-      <button class="history-clear" onclick="clearHistory()">Clear history</button>
-    </div>
-
-    <div class="sidebar-scroll">
-      <div class="history glass-panel fade-up" id="history">
-        <div class="history-grid" id="history-grid"></div>
+    <div class="sidebar-shell">
+      <div class="sidebar-header">
+        <div class="sidebar-title">Result history</div>
+        <button class="history-clear" onclick="clearHistory()">Clear history</button>
       </div>
-    </div>
 
-    <div class="sidebar-footer">
-      <div class="settings glass-panel fade-up" id="settings">
-        <div class="settings-title">Playback settings</div>
-        <div class="settings-row">
-          <label for="speed-select">Speed</label>
-          <select id="speed-select">
-            <option value="2000">Fast (2s)</option>
-            <option value="3000" selected>Normal (3s)</option>
-            <option value="5000">Slow (5s)</option>
-          </select>
-
-          <label for="autoplay-toggle">Autoplay</label>
-          <input id="autoplay-toggle" type="checkbox" />
+      <div class="sidebar-scroll">
+        <div class="history glass-panel fade-up" id="history">
+          <div class="history-grid" id="history-grid"></div>
         </div>
       </div>
 
-      <div class="session glass-panel fade-up" id="sessionBox">
-        <div class="session-title">Remote control</div>
-        <div class="session-grid">
-          <img class="session-qr" id="session-qr" alt="QR code" />
-          <div class="session-meta">
-            <div>Scan the QR code to open the phone remote.</div>
-            <div>Short code: <span class="session-code" id="session-code">—</span></div>
-            <div class="session-link"><a id="session-link" href="#" target="_blank">—</a></div>
+      <div class="sidebar-footer">
+        <div class="settings glass-panel fade-up" id="settings">
+          <div class="settings-title">Playback settings</div>
+          <div class="settings-row">
+            <label for="speed-select">Speed</label>
+            <select id="speed-select">
+              <option value="2000">Fast (2s)</option>
+              <option value="3000" selected>Normal (3s)</option>
+              <option value="5000">Slow (5s)</option>
+            </select>
+
+            <label for="autoplay-toggle">Autoplay</label>
+            <input id="autoplay-toggle" type="checkbox" />
+          </div>
+        </div>
+
+        <div class="session glass-panel fade-up" id="sessionBox">
+          <div class="session-title">Remote control</div>
+          <div class="session-grid">
+            <img class="session-qr" id="session-qr" alt="QR code" />
+            <div class="session-meta">
+              <div>Scan the QR code to open the phone remote.</div>
+              <div>Short code: <span class="session-code" id="session-code">—</span></div>
+              <div class="session-link"><a id="session-link" href="#" target="_blank">—</a></div>
+            </div>
           </div>
         </div>
       </div>
