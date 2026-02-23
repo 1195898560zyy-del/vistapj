@@ -684,9 +684,22 @@
           };
           recorder.onstop = async () => {
             stream.getTracks().forEach((track) => track.stop());
+            recording = false;
+            if (wakeRecordTimer) {
+              clearTimeout(wakeRecordTimer);
+              wakeRecordTimer = null;
+            }
             const blob = new Blob(recordingChunks, { type: recorder.mimeType || "audio/webm" });
             const base64 = await blobToBase64(blob);
             await transcribeAudio(base64, blob.type);
+            if (!wakeAlwaysListen) {
+              chatMic.classList.remove("active");
+              chatMic.textContent = "Mic";
+              if (chatWake) {
+                chatWake.classList.remove("active");
+                chatWake.textContent = "Wake";
+              }
+            }
             if (wakeAlwaysListen && !recording) {
               wakeListenCooldown = true;
               setTimeout(() => {
