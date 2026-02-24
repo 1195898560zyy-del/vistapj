@@ -3157,6 +3157,12 @@ function toggleFullscreen() {
   }
 }
 
+function isGalleryFullscreen() {
+  return document.fullscreenElement ||
+    document.webkitFullscreenElement ||
+    document.msFullscreenElement;
+}
+
 function onModeChange() {
   // Placeholder for history restore/remote sync.
 }
@@ -3417,6 +3423,18 @@ document.addEventListener("keydown", (event) => {
 });
 
 document.addEventListener("input", registerActivity, true);
+
+document.addEventListener("keydown", (event) => {
+  if (!isGalleryFullscreen()) return;
+  if (event.key === "ArrowRight") {
+    event.preventDefault();
+    setActive(slideIndex + 1);
+  }
+  if (event.key === "ArrowLeft") {
+    event.preventDefault();
+    setActive(slideIndex - 1);
+  }
+});
 
 window.addEventListener("load", resetAgentLog);
 window.addEventListener("pageshow", (event) => {
