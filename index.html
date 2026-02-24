@@ -1005,8 +1005,8 @@
 
     .search-dock {
       position: fixed;
-      left: 96px;
-      top: 72px;
+      left: 0;
+      top: 0;
       display: inline-flex;
       align-items: center;
       gap: 12px;
@@ -1027,6 +1027,14 @@
       backdrop-filter: blur(12px);
     }
 
+    .search-dock.dragging .search-bubble {
+      cursor: grabbing;
+    }
+
+    .search-bubble {
+      cursor: grab;
+    }
+
     .search-card {
       max-height: 0;
       opacity: 0;
@@ -1042,6 +1050,13 @@
       opacity: 1;
       transform: translateX(0);
       pointer-events: auto;
+    }
+
+    .search-dock.dragging .search-card {
+      pointer-events: none;
+      max-height: 0;
+      opacity: 0;
+      transform: translateX(-12px);
     }
 
     .search-dock .command-row {
@@ -1527,7 +1542,7 @@
       <div id="presenter-activity-text">Working...</div>
     </div>
 
-    <div class="search-dock">
+    <div class="search-dock" id="search-dock">
       <button class="search-bubble" type="button" aria-label="Open search">V</button>
       <div class="search-card">
         <section class="command-panel glass-panel">
@@ -3251,6 +3266,76 @@ initInfiniteSearch();
 initGalleryInteractions();
 resetAgentLog();
 updateGalleryActive();
+
+function initSearchDockDrag() {
+  const dock = document.getElementById("search-dock");
+  const bubble = document.querySelector(".search-bubble");
+  if (!dock || !bubble) return;
+
+  const POS_KEY = "vista_search_dock_pos_v1";
+  let drag = { active: false, moved: false, startX: 0, startY: 0, x: 96, y: 72 };
+
+  function clamp(value, min, max) {
+    return Math.min(Math.max(value, min), max);
+  }
+
+  function applyPosition(x, y) {
+    const maxX = window.innerWidth - dock.offsetWidth - 16;
+    const maxY = window.innerHeight - dock.offsetHeight - 16;
+    const nextX = clamp(x, 16, Math.max(16, maxX));
+    const nextY = clamp(y, 16, Math.max(16, maxY));
+    dock.style.transform = `translate3d(${nextX}px, ${nextY}px, 0)`;
+    drag.x = nextX;
+    drag.y = nextY;
+  }
+
+  const stored = localStorage.getItem(POS_KEY);
+  if (stored) {
+    try {
+      const pos = JSON.parse(stored);
+      if (Number.isFinite(pos.x) && Number.isFinite(pos.y)) {
+        drag.x = pos.x;
+        drag.y = pos.y;
+      }
+    } catch (err) {
+      // ignore stored position errors
+    }
+  }
+  applyPosition(drag.x, drag.y);
+
+  bubble.addEventListener("pointerdown", (e) => {
+    drag.active = true;
+    drag.moved = false;
+    drag.startX = e.clientX - drag.x;
+    drag.startY = e.clientY - drag.y;
+    dock.classList.add("dragging");
+    bubble.setPointerCapture(e.pointerId);
+  });
+
+  bubble.addEventListener("pointermove", (e) => {
+    if (!drag.active) return;
+    const nextX = e.clientX - drag.startX;
+    const nextY = e.clientY - drag.startY;
+    if (Math.abs(nextX - drag.x) > 4 || Math.abs(nextY - drag.y) > 4) {
+      drag.moved = true;
+    }
+    applyPosition(nextX, nextY);
+  });
+
+  bubble.addEventListener("pointerup", (e) => {
+    if (!drag.active) return;
+    drag.active = false;
+    bubble.releasePointerCapture(e.pointerId);
+    dock.classList.remove("dragging");
+    localStorage.setItem(POS_KEY, JSON.stringify({ x: drag.x, y: drag.y }));
+  });
+
+  window.addEventListener("resize", () => {
+    applyPosition(drag.x, drag.y);
+  });
+}
+
+initSearchDockDrag();
 
 const idleBtn = document.getElementById("btn-idle");
 if (idleBtn) {
