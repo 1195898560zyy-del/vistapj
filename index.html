@@ -974,20 +974,12 @@
 
     .search-dock {
       position: fixed;
-      left: 24px;
-      top: 50%;
-      width: min(320px, calc(100vw - 48px));
-      transform: translate(-120%, -50%);
-      opacity: 0;
-      transition: transform 0.45s ease, opacity 0.45s ease;
-      z-index: 5;
-      display: grid;
+      left: 20px;
+      top: 20px;
+      display: inline-flex;
+      align-items: center;
       gap: 12px;
-    }
-
-    body.is-active .search-dock {
-      transform: translate(0, -50%);
-      opacity: 1;
+      z-index: 7;
     }
 
     .search-bubble {
@@ -1015,23 +1007,14 @@
 
     .search-dock:hover .search-card,
     .search-dock:focus-within .search-card {
-      max-height: 520px;
+      max-height: 140px;
       opacity: 1;
       transform: translateX(0);
       pointer-events: auto;
     }
 
     .search-dock .command-row {
-      grid-template-columns: 1fr;
-    }
-
-    .search-dock .command-row > * {
-      width: 100%;
-    }
-
-    .search-dock .command-refine,
-    .search-dock .primary {
-      justify-self: stretch;
+      grid-template-columns: 1fr repeat(4, auto);
     }
 
     .app-shell {
@@ -1508,7 +1491,7 @@
     </div>
 
     <div class="search-dock">
-      <button class="search-bubble" type="button" aria-label="Open search">Go</button>
+      <button class="search-bubble" type="button" aria-label="Open search">V</button>
       <div class="search-card">
         <section class="command-panel glass-panel">
           <div class="panel-title">Search or generate</div>
