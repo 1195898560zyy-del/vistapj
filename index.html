@@ -1456,6 +1456,16 @@
       color: var(--text);
     }
 
+    .settings-action {
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text);
+      padding: 8px 12px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
     .presenter-activity {
       background: rgba(15, 15, 17, 0.7);
       border: 1px solid rgba(255, 255, 255, 0.08);
@@ -1692,6 +1702,8 @@
 
           <label for="autoplay-toggle">Autoplay</label>
           <input id="autoplay-toggle" type="checkbox" />
+          <button class="settings-action" id="ui-reset" type="button">Reset UI</button>
+          <button class="settings-action" id="ui-refresh" type="button">Refresh</button>
         </div>
       </div>
 
@@ -3417,6 +3429,22 @@ if (autoplayToggle) {
     } else {
       stopSlideshow();
     }
+  });
+}
+
+const uiReset = document.getElementById("ui-reset");
+const uiRefresh = document.getElementById("ui-refresh");
+if (uiReset) {
+  uiReset.addEventListener("click", () => {
+    localStorage.removeItem("vista_agent_pos_v1");
+    localStorage.removeItem("vista_search_dock_pos_v1");
+    localStorage.removeItem("vista_sidebar_collapsed");
+    location.reload();
+  });
+}
+if (uiRefresh) {
+  uiRefresh.addEventListener("click", () => {
+    location.reload();
   });
 }
 
