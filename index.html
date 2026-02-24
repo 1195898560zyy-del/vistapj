@@ -884,6 +884,11 @@
       transition: opacity 0.35s ease, transform 0.35s ease;
     }
 
+    .weather-content,
+    .weather-source {
+      transition: opacity 0.35s ease, transform 0.35s ease;
+    }
+
     .layer-ui {
       z-index: 4;
       opacity: 0;
@@ -905,8 +910,14 @@
     }
 
     body.is-active .layer-info {
-      opacity: 0.35;
-      transform: translateY(8px) scale(0.99);
+      opacity: 0.15;
+      transform: translateY(10px) scale(0.98);
+    }
+
+    body.is-active .weather-content,
+    body.is-active .weather-source {
+      opacity: 0;
+      transform: translateY(12px);
     }
 
     h1 {
