@@ -537,6 +537,7 @@
       gap: 10px;
       transform: translate3d(0, 0, 0);
       transition: transform 0.2s ease;
+      pointer-events: auto;
     }
 
     .agent-bubble {
@@ -591,7 +592,16 @@
       transition: max-height 0.4s ease, opacity 0.3s ease, transform 0.3s ease;
       position: absolute;
       right: 0;
-      bottom: 70px;
+      bottom: 62px;
+    }
+
+    .agent-panel::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      bottom: -12px;
+      width: 100%;
+      height: 12px;
     }
 
     .agent-fab.open .agent-panel,
@@ -1050,7 +1060,7 @@
 
     .search-card {
       position: absolute;
-      left: 54px;
+      left: 56px;
       top: 0;
       max-height: 0;
       opacity: 0;
@@ -1058,6 +1068,7 @@
       pointer-events: none;
       transition: max-height 0.4s ease, opacity 0.35s ease, transform 0.35s ease;
       overflow: hidden;
+      border-radius: 24px;
     }
 
     .search-card::before {
@@ -1292,6 +1303,14 @@
 
     #gallery img.active {
       animation: galleryReveal 0.6s ease;
+    }
+
+    #gallery.cover img {
+      width: 100%;
+      height: 100%;
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: cover;
     }
 
     .gallery-source {
@@ -1662,6 +1681,7 @@
         <button class="ctrl-btn" onclick="startSlideshow()">▶︎</button>
         <button class="ctrl-btn" onclick="stopSlideshow()">⏸</button>
         <button class="ctrl-btn" onclick="toggleFullscreen()">⛶</button>
+        <button class="ctrl-btn" id="btn-fit" type="button">Full</button>
         <button class="ctrl-btn" onclick="downloadCurrent()">↓</button>
         <button class="ctrl-btn secondary" id="btn-idle">Idle</button>
         <button class="ctrl-btn danger" onclick="clearGallery()">✕</button>
@@ -1705,6 +1725,12 @@
             <option value="40" selected>40</option>
             <option value="80">80</option>
             <option value="120">120</option>
+          </select>
+
+          <label for="fit-select">Fit</label>
+          <select id="fit-select">
+            <option value="contain" selected>Contain</option>
+            <option value="cover">Cover</option>
           </select>
 
           <label for="autoplay-toggle">Autoplay</label>
@@ -3400,9 +3426,21 @@ window.addEventListener("pageshow", (event) => {
 
 const speedSelect = document.getElementById("speed-select");
 const loadLimitSelect = document.getElementById("load-limit");
+const fitSelect = document.getElementById("fit-select");
+const fitButton = document.getElementById("btn-fit");
 const autoplayToggle = document.getElementById("autoplay-toggle");
 
 const LOAD_LIMIT_KEY = "vista_load_limit";
+const FIT_KEY = "vista_fit_mode";
+
+function applyFitMode(mode) {
+  const gallery = document.getElementById("gallery");
+  if (!gallery) return;
+  gallery.classList.toggle("cover", mode === "cover");
+  if (fitButton) {
+    fitButton.textContent = mode === "cover" ? "Contain" : "Full";
+  }
+}
 
 if (speedSelect) {
   speedSelect.addEventListener("change", () => {
@@ -3426,6 +3464,27 @@ if (loadLimitSelect) {
     if (Number.isFinite(value)) {
       localStorage.setItem(LOAD_LIMIT_KEY, String(value));
     }
+  });
+}
+
+if (fitSelect) {
+  const savedFit = localStorage.getItem(FIT_KEY) || "contain";
+  fitSelect.value = savedFit;
+  applyFitMode(savedFit);
+  fitSelect.addEventListener("change", () => {
+    const mode = fitSelect.value || "contain";
+    localStorage.setItem(FIT_KEY, mode);
+    applyFitMode(mode);
+  });
+}
+
+if (fitButton) {
+  fitButton.addEventListener("click", () => {
+    const current = (fitSelect && fitSelect.value) || localStorage.getItem(FIT_KEY) || "contain";
+    const next = current === "cover" ? "contain" : "cover";
+    if (fitSelect) fitSelect.value = next;
+    localStorage.setItem(FIT_KEY, next);
+    applyFitMode(next);
   });
 }
 
