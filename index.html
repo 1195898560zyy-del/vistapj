@@ -510,22 +510,47 @@
       letter-spacing: 0.6px;
     }
 
-    .settings-row {
-      display: flex;
-      flex-wrap: wrap;
+    .settings-table {
+      display: grid;
       gap: 12px;
+    }
+
+    .settings-row {
+      display: grid;
+      grid-template-columns: 110px minmax(0, 1fr);
+      gap: 10px;
       align-items: center;
     }
 
-    .settings-row label {
-      font-size: 13px;
-      color: #475569;
-      margin-right: 6px;
+    .settings-label {
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
     }
 
-    .settings-row select,
-    .settings-row input[type="checkbox"] {
-      margin-right: 12px;
+    .settings-control {
+      min-width: 0;
+    }
+
+    .settings-control select {
+      width: 100%;
+    }
+
+    .settings-control input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+    }
+
+    .settings-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-start;
+    }
+
+    .settings-actions .settings-action {
+      flex: none;
     }
 
     .agent-fab {
@@ -1468,14 +1493,14 @@
     }
 
     .settings-title,
-    .settings-row label,
+    .settings-label,
     .refine-actions input {
       color: var(--text);
     }
 
     .refine-actions input,
-    .settings-row select,
-    .settings-row input {
+    .settings-control select,
+    .settings-control input {
       background: rgba(255, 255, 255, 0.04);
       border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 14px;
@@ -1710,32 +1735,70 @@
     <div class="sidebar-footer">
       <div class="settings glass-panel fade-up" id="settings">
         <div class="settings-title">Playback settings</div>
-        <div class="settings-row">
-          <label for="speed-select">Speed</label>
-          <select id="speed-select">
+        <div class="settings-table">
+          <div class="settings-row">
+            <span class="settings-label">Speed</span>
+            <div class="settings-control">
+              <select id="speed-select">
             <option value="2000">Fast (2s)</option>
             <option value="3000" selected>Normal (3s)</option>
             <option value="5000">Slow (5s)</option>
-          </select>
+              </select>
+            </div>
+          </div>
 
-          <label for="load-limit">Load</label>
-          <select id="load-limit">
+          <div class="settings-row">
+            <span class="settings-label">Voice max</span>
+            <div class="settings-control">
+              <select id="voice-max">
+                <option value="6000">6s</option>
+                <option value="8000">8s</option>
+                <option value="10000">10s</option>
+                <option value="12000" selected>12s</option>
+                <option value="15000">15s</option>
+                <option value="20000">20s</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="settings-row">
+            <span class="settings-label">Load</span>
+            <div class="settings-control">
+              <select id="load-limit">
             <option value="20">20</option>
             <option value="40" selected>40</option>
             <option value="80">80</option>
             <option value="120">120</option>
-          </select>
+              </select>
+            </div>
+          </div>
 
-          <label for="fit-select">Fit</label>
-          <select id="fit-select">
+          <div class="settings-row">
+            <span class="settings-label">Fit</span>
+            <div class="settings-control">
+              <select id="fit-select">
             <option value="contain" selected>Contain</option>
             <option value="cover">Cover</option>
-          </select>
+              </select>
+            </div>
+          </div>
 
-          <label for="autoplay-toggle">Autoplay</label>
-          <input id="autoplay-toggle" type="checkbox" />
-          <button class="settings-action" id="ui-reset" type="button">Reset UI</button>
-          <button class="settings-action" id="ui-refresh" type="button">Refresh</button>
+          <div class="settings-row">
+            <span class="settings-label">Autoplay</span>
+            <div class="settings-control">
+              <input id="autoplay-toggle" type="checkbox" />
+            </div>
+          </div>
+
+          <div class="settings-row">
+            <span class="settings-label">Actions</span>
+            <div class="settings-control">
+              <div class="settings-actions">
+                <button class="settings-action" id="ui-reset" type="button">Reset UI</button>
+                <button class="settings-action" id="ui-refresh" type="button">Refresh</button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1900,6 +1963,10 @@ let agentRecordingChunks = [];
 let agentAlwaysListen = false;
 let agentRecordTimer = null;
 let agentListenCooldown = false;
+let agentAudioContext = null;
+let agentSilenceCheckId = null;
+let agentSilenceStart = null;
+let agentRecordStart = null;
 
 const HISTORY_KEY = "vista_result_history_v1";
 const HISTORY_LIMIT = 5;
@@ -2119,6 +2186,7 @@ async function startAgentRecording(input, micBtn, options = {}) {
     };
     agentRecorder.onstop = async () => {
       stream.getTracks().forEach((track) => track.stop());
+      cleanupAgentAudioMonitor();
       agentRecording = false;
       const blob = new Blob(agentRecordingChunks, { type: agentRecorder.mimeType || "audio/webm" });
       const base64 = await blobToBase64(blob);
@@ -2141,9 +2209,7 @@ async function startAgentRecording(input, micBtn, options = {}) {
       wakeBtn.textContent = agentAlwaysListen ? "Wake On" : "Wake";
     }
     setAgentStatus(agentAlwaysListen ? "Listening for 'hey vista'..." : "Recording...");
-    agentRecordTimer = setTimeout(() => {
-      if (agentRecorder && agentRecording) agentRecorder.stop();
-    }, 12000);
+    startAgentAudioMonitor(stream);
   } catch (err) {
     setAgentStatus("Mic error.");
   }
@@ -2159,6 +2225,7 @@ function stopAgentRecording() {
   agentListenCooldown = false;
   agentRecorder.stop();
   agentRecording = false;
+  cleanupAgentAudioMonitor();
   const micBtn = document.getElementById("agent-mic");
   if (micBtn) {
     micBtn.classList.remove("active");
@@ -2170,6 +2237,78 @@ function stopAgentRecording() {
     wakeBtn.textContent = "Wake";
   }
   setAgentStatus("Transcribing...");
+}
+
+function getVoiceMaxMs() {
+  const select = document.getElementById("voice-max");
+  if (!select) return 12000;
+  const value = parseInt(select.value, 10);
+  return Number.isFinite(value) ? value : 12000;
+}
+
+function cleanupAgentAudioMonitor() {
+  if (agentSilenceCheckId) {
+    cancelAnimationFrame(agentSilenceCheckId);
+    agentSilenceCheckId = null;
+  }
+  agentSilenceStart = null;
+  agentRecordStart = null;
+  if (agentRecordTimer) {
+    clearTimeout(agentRecordTimer);
+    agentRecordTimer = null;
+  }
+  if (agentAudioContext) {
+    agentAudioContext.close();
+    agentAudioContext = null;
+  }
+}
+
+function startAgentAudioMonitor(stream) {
+  cleanupAgentAudioMonitor();
+  const maxMs = getVoiceMaxMs();
+  const silenceMs = 900;
+  const threshold = 0.015;
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  if (!AudioCtx) {
+    agentRecordTimer = setTimeout(() => {
+      if (agentRecorder && agentRecording) agentRecorder.stop();
+    }, maxMs);
+    return;
+  }
+  agentAudioContext = new AudioCtx();
+  const source = agentAudioContext.createMediaStreamSource(stream);
+  const analyser = agentAudioContext.createAnalyser();
+  analyser.fftSize = 2048;
+  source.connect(analyser);
+  const data = new Uint8Array(analyser.fftSize);
+  agentRecordStart = performance.now();
+
+  const check = () => {
+    if (!agentRecording || !agentRecorder) return;
+    analyser.getByteTimeDomainData(data);
+    let sum = 0;
+    for (let i = 0; i < data.length; i += 1) {
+      const v = (data[i] - 128) / 128;
+      sum += v * v;
+    }
+    const rms = Math.sqrt(sum / data.length);
+    const now = performance.now();
+    if (rms < threshold) {
+      if (!agentSilenceStart) agentSilenceStart = now;
+      if (now - agentSilenceStart >= silenceMs) {
+        agentRecorder.stop();
+        return;
+      }
+    } else {
+      agentSilenceStart = null;
+    }
+    if (now - agentRecordStart >= maxMs) {
+      agentRecorder.stop();
+      return;
+    }
+    agentSilenceCheckId = requestAnimationFrame(check);
+  };
+  agentSilenceCheckId = requestAnimationFrame(check);
 }
 
 function blobToBase64(blob) {
@@ -2707,7 +2846,7 @@ function applyRemoteCommand(command) {
     if (command.ratio && ratioSelect) {
       ratioSelect.value = command.ratio;
     }
-    searchLibrary();
+    searchLibrary(command.keyword || nextValue, command.ratio || "");
     return;
   }
 
@@ -2881,7 +3020,7 @@ function getLoadLimit() {
 function resetSearchSession(mode, keyword, ratio) {
   searchSessionId += 1;
   const limit = getLoadLimit();
-  const startPage = Math.floor(Math.random() * 3) + 1;
+  const startPage = 1;
   searchState = {
     id: searchSessionId,
     mode,
@@ -2897,7 +3036,8 @@ function resetSearchSession(mode, keyword, ratio) {
     loaded: 0,
     emptyStreak: 0,
     seen: new Set(),
-    max: limit
+    max: limit,
+    randomize: false
   };
 }
 
@@ -2976,8 +3116,8 @@ async function loadNextSearchBatch(isInitial = false) {
       const res = await fetchUnsplashBatch(searchState.unsplashPage, searchState.keyword, searchState.ratio);
       if (activeSession !== searchSessionId) return;
       searchState.unsplashTotal = res.totalPages || 1;
-      const shuffled = shuffleArray(res.images || []);
-      added += appendSearchResults(shuffled, "Unsplash");
+      const items = searchState.randomize ? shuffleArray(res.images || []) : (res.images || []);
+      added += appendSearchResults(items, "Unsplash");
       searchState.unsplashPage += 1;
       if (searchState.unsplashPage > searchState.unsplashTotal) {
         searchState.exhausted = true;
@@ -2985,15 +3125,15 @@ async function loadNextSearchBatch(isInitial = false) {
     } else if (searchState.mode === "pexels") {
       const res = await fetchPexelsBatch(searchState.pexelsPage, searchState.keyword, searchState.ratio);
       if (activeSession !== searchSessionId) return;
-      const shuffled = shuffleArray(res.images || []);
-      added += appendSearchResults(shuffled, "Pexels");
+      const items = searchState.randomize ? shuffleArray(res.images || []) : (res.images || []);
+      added += appendSearchResults(items, "Pexels");
       searchState.pexelsPage += 1;
     } else if (searchState.mode === "pixabay") {
       const res = await fetchPixabayBatch(searchState.pixabayPage, searchState.keyword, searchState.ratio);
       if (activeSession !== searchSessionId) return;
       searchState.pixabayTotal = res.totalPages || 1;
-      const shuffled = shuffleArray(res.images || []);
-      added += appendSearchResults(shuffled, "Pixabay");
+      const items = searchState.randomize ? shuffleArray(res.images || []) : (res.images || []);
+      added += appendSearchResults(items, "Pixabay");
       searchState.pixabayPage += 1;
       if (searchState.pixabayPage > searchState.pixabayTotal) {
         searchState.exhausted = true;
@@ -3007,9 +3147,12 @@ async function loadNextSearchBatch(isInitial = false) {
       if (activeSession !== searchSessionId) return;
       searchState.unsplashTotal = uRes.totalPages || 1;
       searchState.pixabayTotal = xRes.totalPages || 1;
-      const uAdded = appendSearchResults(shuffleArray(uRes.images || []), "Unsplash");
-      const pAdded = appendSearchResults(shuffleArray(pRes.images || []), "Pexels");
-      const xAdded = appendSearchResults(shuffleArray(xRes.images || []), "Pixabay");
+      const uItems = searchState.randomize ? shuffleArray(uRes.images || []) : (uRes.images || []);
+      const pItems = searchState.randomize ? shuffleArray(pRes.images || []) : (pRes.images || []);
+      const xItems = searchState.randomize ? shuffleArray(xRes.images || []) : (xRes.images || []);
+      const uAdded = appendSearchResults(uItems, "Unsplash");
+      const pAdded = appendSearchResults(pItems, "Pexels");
+      const xAdded = appendSearchResults(xItems, "Pixabay");
       added += uAdded + pAdded + xAdded;
       searchState.unsplashPage += 1;
       searchState.pexelsPage += 1;
@@ -3193,9 +3336,9 @@ function submitUnified() {
     const mode = document.getElementById("mode");
     const libraryRatio = document.getElementById("library-ratio");
     if (searchInput) searchInput.value = prompt;
-    if (mode) mode.value = "multi";
+    if (mode) mode.value = "unsplash";
     if (libraryRatio) libraryRatio.value = ratio;
-    searchLibrary();
+    searchLibrary(prompt, ratio);
     return;
   }
 
@@ -3219,18 +3362,29 @@ function initUnifiedControls() {
   syncUnifiedMode();
 }
 
-async function searchLibrary() {
+async function searchLibrary(keywordOverride = "", ratioOverride = "") {
   stopSlideshow();
 
+  const unifiedInput = document.getElementById("unified-prompt");
   const keywordInput = document.getElementById("search-keyword");
   const ratioSelect = document.getElementById("library-ratio");
-  const mode = document.getElementById("mode").value;
-  const keyword = keywordInput.value.trim();
-  const ratio = ratioSelect ? ratioSelect.value : "1:1";
+  const rawMode = document.getElementById("mode").value;
+  const mode = rawMode === "multi" ? "unsplash" : rawMode;
+  const unifiedValue = unifiedInput ? unifiedInput.value.trim() : "";
+  const legacyValue = keywordInput ? keywordInput.value.trim() : "";
+  const keyword = String(keywordOverride || "").trim() || unifiedValue || legacyValue;
+  const ratio = ratioOverride || (ratioSelect ? ratioSelect.value : "1:1");
 
   if (!keyword) {
     setStatus("Please enter a search keyword.");
     return;
+  }
+
+  if (keywordInput && keywordInput.value.trim() !== keyword) {
+    keywordInput.value = keyword;
+  }
+  if (unifiedInput && unifiedInput.value.trim() !== keyword) {
+    unifiedInput.value = keyword;
   }
 
   resetSearchSession(mode, keyword, ratio);
@@ -3242,8 +3396,7 @@ async function searchLibrary() {
     await loadNextSearchBatch(true);
     const count = getImages().length;
     if (count) {
-      const modeLabel = mode === "multi" ? "mixed" : mode;
-      addHistory(modeLabel, keyword, [...getImages()].map((img) => img.src));
+      addHistory(mode, keyword, [...getImages()].map((img) => img.src));
     }
 
   } catch (err) {
@@ -3444,10 +3597,12 @@ window.addEventListener("pageshow", (event) => {
 const speedSelect = document.getElementById("speed-select");
 const loadLimitSelect = document.getElementById("load-limit");
 const fitSelect = document.getElementById("fit-select");
+const voiceMaxSelect = document.getElementById("voice-max");
 const autoplayToggle = document.getElementById("autoplay-toggle");
 
 const LOAD_LIMIT_KEY = "vista_load_limit";
 const FIT_KEY = "vista_fit_mode";
+const VOICE_MAX_KEY = "vista_voice_max_ms";
 
 function applyFitMode(mode) {
   const gallery = document.getElementById("gallery");
@@ -3488,6 +3643,19 @@ if (fitSelect) {
     const mode = fitSelect.value || "contain";
     localStorage.setItem(FIT_KEY, mode);
     applyFitMode(mode);
+  });
+}
+
+if (voiceMaxSelect) {
+  const savedVoice = parseInt(localStorage.getItem(VOICE_MAX_KEY), 10);
+  if (Number.isFinite(savedVoice)) {
+    voiceMaxSelect.value = String(savedVoice);
+  }
+  voiceMaxSelect.addEventListener("change", () => {
+    const value = parseInt(voiceMaxSelect.value, 10);
+    if (Number.isFinite(value)) {
+      localStorage.setItem(VOICE_MAX_KEY, String(value));
+    }
   });
 }
 
