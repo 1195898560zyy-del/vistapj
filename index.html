@@ -1051,7 +1051,7 @@
 
     .search-card {
       position: absolute;
-      left: 66px;
+      left: 54px;
       top: 0;
       max-height: 0;
       opacity: 0;
@@ -1059,6 +1059,15 @@
       pointer-events: none;
       transition: max-height 0.4s ease, opacity 0.35s ease, transform 0.35s ease;
       overflow: hidden;
+    }
+
+    .search-card::before {
+      content: "";
+      position: absolute;
+      left: -12px;
+      top: 0;
+      width: 12px;
+      height: 100%;
     }
 
     .search-dock:hover .search-card,
