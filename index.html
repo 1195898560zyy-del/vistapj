@@ -1967,6 +1967,7 @@ let agentAudioContext = null;
 let agentSilenceCheckId = null;
 let agentSilenceStart = null;
 let agentRecordStart = null;
+let agentRecordMime = "audio/webm";
 
 const HISTORY_KEY = "vista_result_history_v1";
 const HISTORY_LIMIT = 5;
@@ -2171,6 +2172,22 @@ function extractWakeCommand(text) {
   return rest;
 }
 
+function getSupportedRecorderMime() {
+  const types = [
+    "audio/webm;codecs=opus",
+    "audio/webm",
+    "audio/ogg;codecs=opus",
+    "audio/ogg"
+  ];
+  if (typeof MediaRecorder === "undefined" || !MediaRecorder.isTypeSupported) {
+    return "audio/webm";
+  }
+  for (const type of types) {
+    if (MediaRecorder.isTypeSupported(type)) return type;
+  }
+  return "audio/webm";
+}
+
 async function startAgentRecording(input, micBtn, options = {}) {
   if (agentRecording) return;
   if (agentListenCooldown) return;
@@ -2178,7 +2195,8 @@ async function startAgentRecording(input, micBtn, options = {}) {
   agentRecordingChunks = [];
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    agentRecorder = new MediaRecorder(stream);
+    agentRecordMime = getSupportedRecorderMime();
+    agentRecorder = new MediaRecorder(stream, { mimeType: agentRecordMime });
     agentRecorder.ondataavailable = (event) => {
       if (event.data && event.data.size > 0) {
         agentRecordingChunks.push(event.data);
@@ -2188,7 +2206,7 @@ async function startAgentRecording(input, micBtn, options = {}) {
       stream.getTracks().forEach((track) => track.stop());
       cleanupAgentAudioMonitor();
       agentRecording = false;
-      const blob = new Blob(agentRecordingChunks, { type: agentRecorder.mimeType || "audio/webm" });
+      const blob = new Blob(agentRecordingChunks, { type: agentRecordMime });
       const base64 = await blobToBase64(blob);
       await transcribeAgentAudio(base64, blob.type, input);
       if (agentAlwaysListen && !agentRecording) {
