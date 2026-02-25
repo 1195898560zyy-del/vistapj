@@ -2257,11 +2257,20 @@ function stopAgentRecording() {
   setAgentStatus("Transcribing...");
 }
 
+function restoreWakeButton() {
+  const wakeBtn = document.getElementById("agent-wake");
+  if (wakeBtn) {
+    wakeBtn.classList.toggle("active", agentAlwaysListen);
+    wakeBtn.textContent = agentAlwaysListen ? "Wake On" : "Wake";
+  }
+}
+
 function ensureAgentListening(input) {
   if (!agentAlwaysListen) return;
   setTimeout(() => {
     if (!agentAlwaysListen || agentRecording) return;
     agentListenCooldown = false;
+    restoreWakeButton();
     startAgentRecording(input, document.getElementById("agent-mic"), { continuous: true });
   }, 500);
 }
@@ -2395,6 +2404,7 @@ async function transcribeAgentAudio(base64, mime, input) {
       setAgentStatus("Listening for 'hey vista'...");
       startAgentRecording(input, document.getElementById("agent-mic"), { continuous: true });
     }
+    restoreWakeButton();
     ensureAgentListening(input);
   }
 }
