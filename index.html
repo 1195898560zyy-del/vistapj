@@ -3904,6 +3904,9 @@ async function sendAgentMessage() {
   } finally {
     if (button) button.disabled = false;
     hidePresenterActivity();
+    if (agentAlwaysListen) {
+      resumeWakeListening();
+    }
   }
 }
 
