@@ -2284,8 +2284,8 @@ function cleanupAgentAudioMonitor() {
 function startAgentAudioMonitor(stream) {
   cleanupAgentAudioMonitor();
   const maxMs = getVoiceMaxMs();
-  const silenceMs = 900;
-  const threshold = 0.015;
+  const silenceMs = 1400;
+  const threshold = 0.008;
   const AudioCtx = window.AudioContext || window.webkitAudioContext;
   if (!AudioCtx) {
     agentRecordTimer = setTimeout(() => {
