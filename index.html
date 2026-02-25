@@ -2265,6 +2265,13 @@ function restoreWakeButton() {
   }
 }
 
+function resumeWakeListening() {
+  if (!agentAlwaysListen) return;
+  setAgentStatus("Listening for 'hey vista'...");
+  restoreWakeButton();
+  ensureAgentListening(document.getElementById("agent-input"));
+}
+
 function ensureAgentListening(input) {
   if (!agentAlwaysListen) return;
   setTimeout(() => {
@@ -3943,6 +3950,7 @@ function applyAgentResult(tool, result, args, fallbackText) {
     buildCatalog(images.length);
     setStatus(`Loaded ${images.length} images.`);
     addHistory(result.source || "unsplash", keyword, images);
+    resumeWakeListening();
   }
 
   if (tool === "generate_ai") {
@@ -3959,6 +3967,7 @@ function applyAgentResult(tool, result, args, fallbackText) {
     buildCatalog(images.length);
     setStatus(`Generated ${images.length} images.`);
     addHistory("flux", keyword, images);
+    resumeWakeListening();
   }
 
   if (tool === "refine_image") {
@@ -3975,6 +3984,7 @@ function applyAgentResult(tool, result, args, fallbackText) {
     lastRefinedUrl = image;
     updateHistoryForRefine(image);
     updateRefineStatus("Refine complete.");
+    resumeWakeListening();
   }
 
   if (tool === "set_view") {
