@@ -1969,6 +1969,10 @@ let agentSilenceStart = null;
 let agentRecordStart = null;
 let agentRecordMime = "audio/webm";
 let agentRestartLock = false;
+let agentRestartTimer = null;
+let agentWakeWatchdog = null;
+let agentExpectCommand = false;
+let agentCommandTimer = null;
 
 const HISTORY_KEY = "vista_result_history_v1";
 const HISTORY_LIMIT = 5;
@@ -2193,7 +2197,12 @@ async function startAgentRecording(input, micBtn, options = {}) {
   if (agentRecording) return;
   if (agentListenCooldown) return;
   if (agentRestartLock) return;
-  agentAlwaysListen = Boolean(options.continuous);
+  if (!options.preserveAlwaysListen) {
+    agentAlwaysListen = Boolean(options.continuous);
+  }
+  if (options.commandOnly) {
+    agentExpectCommand = true;
+  }
   agentRecordingChunks = [];
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -2203,6 +2212,13 @@ async function startAgentRecording(input, micBtn, options = {}) {
       if (event.data && event.data.size > 0) {
         agentRecordingChunks.push(event.data);
       }
+    };
+    agentRecorder.onerror = () => {
+      stream.getTracks().forEach((track) => track.stop());
+      cleanupAgentAudioMonitor();
+      agentRecording = false;
+      setAgentStatus("Mic error.");
+      resumeWakeListening();
     };
     agentRecorder.onstop = async () => {
       stream.getTracks().forEach((track) => track.stop());
@@ -2223,19 +2239,33 @@ async function startAgentRecording(input, micBtn, options = {}) {
     }
     setAgentStatus(agentAlwaysListen ? "Listening for 'hey vista'..." : "Recording...");
     startAgentAudioMonitor(stream);
+    if (agentAlwaysListen) {
+      ensureWakeWatchdog();
+    }
   } catch (err) {
     agentRecording = false;
     setAgentStatus("Mic error: " + err.message);
+    resumeWakeListening();
   }
 }
 
 function stopAgentRecording() {
   if (!agentRecorder || !agentRecording) return;
   agentAlwaysListen = false;
+  agentExpectCommand = false;
   if (agentRecordTimer) {
     clearTimeout(agentRecordTimer);
     agentRecordTimer = null;
   }
+  if (agentRestartTimer) {
+    clearTimeout(agentRestartTimer);
+    agentRestartTimer = null;
+  }
+  if (agentCommandTimer) {
+    clearTimeout(agentCommandTimer);
+    agentCommandTimer = null;
+  }
+  clearWakeWatchdog();
   agentRecorder.stop();
   agentRecording = false;
   cleanupAgentAudioMonitor();
@@ -2260,19 +2290,62 @@ function restoreWakeButton() {
   }
 }
 
-function resumeWakeListening() {
+function startCommandCapture() {
   if (!agentAlwaysListen) return;
-  setAgentStatus("Listening for 'hey vista'...");
+  agentExpectCommand = true;
+  setAgentStatus("Heard. Say your command...");
   restoreWakeButton();
   if (agentRecording || agentRestartLock) return;
+  if (agentCommandTimer) return;
+  agentCommandTimer = setTimeout(() => {
+    agentCommandTimer = null;
+    startAgentRecording(
+      document.getElementById("agent-input"),
+      document.getElementById("agent-mic"),
+      { continuous: false, preserveAlwaysListen: true, commandOnly: true }
+    );
+  }, 200);
+}
+
+function ensureWakeWatchdog() {
+  if (agentWakeWatchdog) return;
+  agentWakeWatchdog = setInterval(() => {
+    if (!agentAlwaysListen || agentRecording || agentRestartLock || agentExpectCommand) return;
+    scheduleWakeRestart();
+  }, 2000);
+}
+
+function clearWakeWatchdog() {
+  if (!agentWakeWatchdog) return;
+  clearInterval(agentWakeWatchdog);
+  agentWakeWatchdog = null;
+}
+
+function scheduleWakeRestart(input = document.getElementById("agent-input"), micBtn = document.getElementById("agent-mic")) {
+  if (!agentAlwaysListen || agentRecording || agentRestartLock || agentExpectCommand) return;
+  if (agentRestartTimer) return;
   agentRestartLock = true;
-  setTimeout(() => {
+  agentRestartTimer = setTimeout(() => {
+    agentRestartTimer = null;
     agentRestartLock = false;
     agentListenCooldown = false;
     if (agentAlwaysListen && !agentRecording) {
-      startAgentRecording(document.getElementById("agent-input"), document.getElementById("agent-mic"), { continuous: true });
+      startAgentRecording(input, micBtn, { continuous: true });
     }
-  }, 500);
+  }, 600);
+}
+
+function resumeWakeListening() {
+  if (!agentAlwaysListen) return;
+  agentExpectCommand = false;
+  if (agentCommandTimer) {
+    clearTimeout(agentCommandTimer);
+    agentCommandTimer = null;
+  }
+  setAgentStatus("Listening for 'hey vista'...");
+  restoreWakeButton();
+  ensureWakeWatchdog();
+  scheduleWakeRestart();
 }
 
 function getVoiceMaxMs() {
@@ -2302,8 +2375,9 @@ function cleanupAgentAudioMonitor() {
 function startAgentAudioMonitor(stream) {
   cleanupAgentAudioMonitor();
   const maxMs = getVoiceMaxMs();
-  const silenceMs = 1400;
-  const threshold = 0.008;
+  const minRecordMs = 900;
+  const silenceMs = 2400;
+  const threshold = 0.005;
   const AudioCtx = window.AudioContext || window.webkitAudioContext;
   if (!AudioCtx) {
     agentRecordTimer = setTimeout(() => {
@@ -2329,9 +2403,10 @@ function startAgentAudioMonitor(stream) {
     }
     const rms = Math.sqrt(sum / data.length);
     const now = performance.now();
+    const elapsed = now - agentRecordStart;
     if (rms < threshold) {
       if (!agentSilenceStart) agentSilenceStart = now;
-      if (now - agentSilenceStart >= silenceMs) {
+      if (elapsed >= minRecordMs && now - agentSilenceStart >= silenceMs) {
         agentRecorder.stop();
         return;
       }
@@ -2373,17 +2448,27 @@ async function transcribeAgentAudio(base64, mime, input) {
     }
     if (data.text) {
       if (isTrivialTranscript(data.text)) {
+        if (agentExpectCommand) {
+          agentExpectCommand = false;
+        }
         setAgentStatus("No speech detected.");
         return;
       }
       if (agentAlwaysListen) {
+        if (agentExpectCommand) {
+          agentExpectCommand = false;
+          input.value = data.text;
+          await sendAgentMessage();
+          return;
+        }
         const command = extractWakeCommand(data.text);
         if (command === null) {
           setAgentStatus("Listening for 'hey vista'...");
           return;
         }
         if (!command) {
-          setAgentStatus("Say a command after 'hey vista'.");
+          flashWakeHeard();
+          startCommandCapture();
           return;
         }
         flashWakeHeard();
@@ -2395,6 +2480,9 @@ async function transcribeAgentAudio(base64, mime, input) {
         return;
       }
     } else {
+      if (agentExpectCommand) {
+        agentExpectCommand = false;
+      }
       setAgentStatus("No speech detected.");
     }
   } catch (err) {
@@ -2406,17 +2494,8 @@ async function transcribeAgentAudio(base64, mime, input) {
       micBtn.textContent = "Mic";
     }
     restoreWakeButton();
-
-    if (agentAlwaysListen && !agentRecording && !agentRestartLock) {
-      agentRestartLock = true;
-      setAgentStatus("Listening for 'hey vista'...");
-      setTimeout(() => {
-        agentRestartLock = false;
-        agentListenCooldown = false;
-        if (agentAlwaysListen) {
-          startAgentRecording(input, document.getElementById("agent-mic"), { continuous: true });
-        }
-      }, 500);
+    if (agentAlwaysListen && !agentExpectCommand) {
+      resumeWakeListening();
     }
   }
 }
@@ -2470,14 +2549,19 @@ function formatWeatherTime(dt, tz) {
 function weatherToQuery(main = "", description = "", isNight = false, city = "") {
   const raw = (description || main || "weather").trim() || "weather";
   const lower = raw.toLowerCase();
-  const needsSky = !lower.includes("sky");
-  const needsCloud = !lower.includes("cloud");
-  const extras = [
-    needsCloud ? "clouds" : "",
-    needsSky ? "sky" : ""
-  ].filter(Boolean).join(" ");
-  const base = extras ? `${raw} ${extras}` : raw;
-  return isNight ? `${base} night` : base;
+  const isRain =
+    lower.includes("rain") ||
+    lower.includes("drizzle") ||
+    lower.includes("shower") ||
+    lower.includes("storm") ||
+    lower.includes("thunder");
+  if (!isRain) {
+    return isNight ? `${raw} night` : raw;
+  }
+  if (isNight) {
+    return "rainy city night wet street reflections";
+  }
+  return "rainy street wet road rain falling";
 }
 
 function applyWeatherUI(data) {
@@ -2793,7 +2877,8 @@ function restoreHistory(id) {
   if (searchInput) searchInput.value = nextKeyword;
   if (aiPromptInput) aiPromptInput.value = nextKeyword;
   const modeSelect = document.getElementById("mode");
-  if (entry.mode && entry.mode !== "flux") {
+  const libraryModes = new Set(["multi", "unsplash", "pexels", "pixabay"]);
+  if (entry.mode && libraryModes.has(entry.mode)) {
     modeSelect.value = entry.mode;
     onModeChange();
   }
@@ -2804,7 +2889,7 @@ function restoreHistory(id) {
     ? "Unsplash"
     : entry.mode === "pexels"
       ? "Pexels"
-      : entry.mode === "flux"
+      : entry.mode === "flux" || entry.mode === "gpt"
         ? "AI"
         : undefined;
   entry.urls.forEach((url, i) => createImg(url, entry.keyword, i === 0, sourceLabel));
@@ -3461,6 +3546,18 @@ function searchOrGenerate() {
   return searchLibrary();
 }
 
+function promptNeedsText(prompt) {
+  const text = String(prompt || "").toLowerCase();
+  return /(?:\btext\b|\bwords?\b|\bcaption\b|\bquote\b|\bslogan\b|\btitle\b|\bheadline\b|\blogo\b|\bsign\b|\bsignage\b|\bposter\b|\blabel\b|\bbrand\b|\bwrite\b|文字|字体|字样|标语|标题|海报|招牌|水印)/i.test(text);
+}
+
+function mapOpenAiSize(aspectRatio) {
+  if (aspectRatio === "16:9") return "1536x1024";
+  if (aspectRatio === "9:16") return "1024x1536";
+  if (aspectRatio === "3:4") return "1024x1536";
+  return "1024x1024";
+}
+
 async function generateAi() {
   stopSlideshow();
   cancelSearchSession();
@@ -3475,26 +3572,40 @@ async function generateAi() {
 
   addSpinner();
   showPresenterActivity("Generating...");
-  setStatus("Generating Flux images...");
+  const aiSize = document.getElementById("ai-size");
+  const aspectRatio = aiSize ? aiSize.value : "1:1";
+  const useOpenAi = promptNeedsText(prompt);
+  setStatus(useOpenAi ? "Generating GPT images..." : "Generating Flux images...");
   showAILoading(prompt);
 
   let count = parseInt(document.getElementById("ai-count").value, 10);
   if (isNaN(count) || count < 1) count = 1;
   if (count > 5) count = 5;
 
-  const aiSize = document.getElementById("ai-size");
-  const aspectRatio = aiSize ? aiSize.value : "1:1";
-
   try {
-    const r = await fetch(`${API_BASE}/api/replicate`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        prompt,
-        count,
-        aspect_ratio: aspectRatio
-      })
-    });
+    let r;
+    if (useOpenAi) {
+      const safeCount = Math.min(count, 3);
+      r = await fetch(`${API_BASE}/api/openai_image`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt,
+          count: safeCount,
+          size: mapOpenAiSize(aspectRatio)
+        })
+      });
+    } else {
+      r = await fetch(`${API_BASE}/api/replicate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt,
+          count,
+          aspect_ratio: aspectRatio
+        })
+      });
+    }
 
     const data = await r.json();
     removeSpinner();
@@ -3504,17 +3615,19 @@ async function generateAi() {
     if (!images.length) {
       clearGallery();
       const errMsg = (data.error && (data.error.message || data.error)) || "No images returned.";
-      setStatus(`Flux failed: ${errMsg}`);
+      const modelLabel = useOpenAi ? "GPT" : "Flux";
+      setStatus(`${modelLabel} failed: ${errMsg}`);
       return;
     }
 
     const g = document.getElementById("gallery");
     g.innerHTML = "";
-    images.forEach((url, i) => createImg(url, prompt, i === 0, "AI"));
+    const sourceLabel = useOpenAi ? "AI (GPT)" : "AI";
+    images.forEach((url, i) => createImg(url, prompt, i === 0, sourceLabel));
 
     buildCatalog(images.length);
-    setStatus(`Flux loaded ${images.length} images.`);
-    addHistory("flux", prompt, images);
+    setStatus(`${useOpenAi ? "GPT" : "Flux"} loaded ${images.length} images.`);
+    addHistory(useOpenAi ? "gpt" : "flux", prompt, images);
   } catch (err) {
     console.error(err);
     hideAILoading();
