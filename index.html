@@ -1957,22 +1957,22 @@ let sessionID = null;
 let sessionCode = null;
 let sessionPoll = null;
 let agentLog = [];
-let agentRecorder = null;
-let agentRecording = false;
-let agentRecordingChunks = [];
-let agentAlwaysListen = false;
-let agentRecordTimer = null;
-let agentListenCooldown = false;
-let agentAudioContext = null;
-let agentSilenceCheckId = null;
-let agentSilenceStart = null;
-let agentRecordStart = null;
+const STATE = {
+  IDLE: "idle",
+  LISTENING: "listening",
+  RECORDING: "recording",
+  PROCESSING: "processing"
+};
+let listenState = STATE.IDLE;
+let mediaRecorder = null;
+let audioChunks = [];
+let audioStream = null;
+let audioMonitorId = null;
+let audioContext = null;
+let audioMaxTimer = null;
+let silenceStart = null;
+let recordStart = null;
 let agentRecordMime = "audio/webm";
-let agentRestartLock = false;
-let agentRestartTimer = null;
-let agentWakeWatchdog = null;
-let agentExpectCommand = false;
-let agentCommandTimer = null;
 
 const HISTORY_KEY = "vista_result_history_v1";
 const HISTORY_LIMIT = 5;
@@ -2115,9 +2115,8 @@ function resetAgentLog() {
 function initAgentVoice() {
   const micBtn = document.getElementById("agent-mic");
   const wakeBtn = document.getElementById("agent-wake");
-  const input = document.getElementById("agent-input");
 
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !micBtn || !wakeBtn || !input) {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !micBtn || !wakeBtn) {
     if (micBtn) {
       micBtn.disabled = true;
       micBtn.title = "Voice input not supported.";
@@ -2130,19 +2129,21 @@ function initAgentVoice() {
   }
 
   micBtn.addEventListener("click", () => {
-    if (agentRecording) {
-      stopAgentRecording();
+    if (listenState === STATE.IDLE) {
+      startManualRecording();
       return;
     }
-    startAgentRecording(input, micBtn, { continuous: false });
+    if (listenState === STATE.RECORDING) {
+      stopManualRecording();
+    }
   });
 
   wakeBtn.addEventListener("click", () => {
-    if (agentRecording || agentAlwaysListen) {
-      stopAgentRecording();
+    if (listenState === STATE.IDLE) {
+      startWakeListening();
       return;
     }
-    startAgentRecording(input, micBtn, { continuous: true });
+    stopWakeListening();
   });
 }
 
@@ -2205,159 +2206,157 @@ function getSupportedRecorderMime() {
   return "audio/webm";
 }
 
-async function startAgentRecording(input, micBtn, options = {}) {
-  if (agentRecording) return;
-  if (agentListenCooldown) return;
-  if (agentRestartLock) return;
-  if (!options.preserveAlwaysListen) {
-    agentAlwaysListen = Boolean(options.continuous);
+function transition(newState) {
+  if (listenState === newState) return;
+  listenState = newState;
+  updateVoiceUI();
+}
+
+function updateVoiceUI() {
+  const micBtn = document.getElementById("agent-mic");
+  const wakeBtn = document.getElementById("agent-wake");
+  const statusEl = document.getElementById("agent-status");
+  const labels = {
+    [STATE.IDLE]: { mic: "Mic", wake: "Wake", status: "Ready." },
+    [STATE.LISTENING]: { mic: "Mic", wake: "Wake On", status: "Listening for 'hey vista'..." },
+    [STATE.RECORDING]: { mic: "Stop", wake: "Wake On", status: "Recording..." },
+    [STATE.PROCESSING]: { mic: "...", wake: "...", status: "Processing..." }
+  };
+  const label = labels[listenState];
+  if (!label) return;
+  if (micBtn) {
+    micBtn.textContent = label.mic;
+    micBtn.classList.toggle("active", listenState === STATE.RECORDING);
   }
-  if (options.commandOnly) {
-    agentExpectCommand = true;
+  if (wakeBtn) {
+    wakeBtn.textContent = label.wake;
+    wakeBtn.classList.toggle("active", listenState === STATE.LISTENING || listenState === STATE.RECORDING);
   }
-  agentRecordingChunks = [];
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    agentRecordMime = getSupportedRecorderMime();
-    agentRecorder = new MediaRecorder(stream, { mimeType: agentRecordMime });
-    agentRecorder.ondataavailable = (event) => {
+  if (statusEl && listenState !== STATE.PROCESSING) {
+    statusEl.textContent = label.status;
+  }
+}
+
+async function ensureStream() {
+  if (audioStream && audioStream.active) return audioStream;
+  audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+  return audioStream;
+}
+
+function releaseStream() {
+  if (!audioStream) return;
+  audioStream.getTracks().forEach((track) => track.stop());
+  audioStream = null;
+}
+
+function stopAudioMonitor() {
+  if (audioMonitorId) {
+    cancelAnimationFrame(audioMonitorId);
+    audioMonitorId = null;
+  }
+  if (audioMaxTimer) {
+    clearTimeout(audioMaxTimer);
+    audioMaxTimer = null;
+  }
+  silenceStart = null;
+  recordStart = null;
+  if (audioContext) {
+    audioContext.close();
+    audioContext = null;
+  }
+}
+
+function startAudioMonitor(stream, maxMs, silenceMs, threshold, minRecordMs, onTrigger) {
+  stopAudioMonitor();
+  silenceStart = null;
+  recordStart = performance.now();
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  if (!AudioCtx) {
+    audioMaxTimer = setTimeout(onTrigger, maxMs);
+    return;
+  }
+  audioContext = new AudioCtx();
+  const source = audioContext.createMediaStreamSource(stream);
+  const analyser = audioContext.createAnalyser();
+  analyser.fftSize = 1024;
+  source.connect(analyser);
+  const data = new Uint8Array(analyser.fftSize);
+
+  const check = () => {
+    analyser.getByteTimeDomainData(data);
+    let sum = 0;
+    for (let i = 0; i < data.length; i += 1) {
+      const v = (data[i] - 128) / 128;
+      sum += v * v;
+    }
+    const rms = Math.sqrt(sum / data.length);
+    const now = performance.now();
+    const elapsed = now - recordStart;
+    if (rms < threshold) {
+      if (!silenceStart) silenceStart = now;
+      if (elapsed >= minRecordMs && now - silenceStart >= silenceMs) {
+        onTrigger();
+        return;
+      }
+    } else {
+      silenceStart = null;
+    }
+    if (elapsed >= maxMs) {
+      onTrigger();
+      return;
+    }
+    audioMonitorId = requestAnimationFrame(check);
+  };
+  audioMonitorId = requestAnimationFrame(check);
+}
+
+async function startOneRecording({ onResult, maxMs, silenceMs, threshold, minRecordMs }) {
+  const stream = await ensureStream();
+  audioChunks = [];
+  agentRecordMime = getSupportedRecorderMime();
+  mediaRecorder = new MediaRecorder(stream, { mimeType: agentRecordMime });
+  return new Promise((resolve, reject) => {
+    mediaRecorder.ondataavailable = (event) => {
       if (event.data && event.data.size > 0) {
-        agentRecordingChunks.push(event.data);
+        audioChunks.push(event.data);
       }
     };
-    agentRecorder.onerror = () => {
-      stream.getTracks().forEach((track) => track.stop());
-      cleanupAgentAudioMonitor();
-      agentRecording = false;
-      setAgentStatus("Mic error.");
-      resumeWakeListening();
+    mediaRecorder.onerror = () => {
+      stopAudioMonitor();
+      reject(new Error("Recorder error"));
     };
-    agentRecorder.onstop = async () => {
-      stream.getTracks().forEach((track) => track.stop());
-      cleanupAgentAudioMonitor();
-      agentRecording = false;
-      const blob = new Blob(agentRecordingChunks, { type: agentRecordMime });
-      const base64 = await blobToBase64(blob);
-      await transcribeAgentAudio(base64, blob.type, input);
+    mediaRecorder.onstop = async () => {
+      stopAudioMonitor();
+      try {
+        const blob = new Blob(audioChunks, { type: agentRecordMime });
+        const base64 = await blobToBase64(blob);
+        await onResult(base64, blob.type);
+        resolve();
+      } catch (err) {
+        reject(err);
+      }
     };
-    agentRecorder.start(1000);
-    agentRecording = true;
-    micBtn.classList.add("active");
-    micBtn.textContent = agentAlwaysListen ? "Listening" : "Stop";
-    const wakeBtn = document.getElementById("agent-wake");
-    if (wakeBtn) {
-      wakeBtn.classList.toggle("active", agentAlwaysListen);
-      wakeBtn.textContent = agentAlwaysListen ? "Wake On" : "Wake";
-    }
-    setAgentStatus(agentAlwaysListen ? "Listening for 'hey vista'..." : "Recording...");
-    startAgentAudioMonitor(stream);
-    if (agentAlwaysListen) {
-      ensureWakeWatchdog();
-    }
-  } catch (err) {
-    agentRecording = false;
-    setAgentStatus("Mic error: " + err.message);
-    resumeWakeListening();
-  }
-}
-
-function stopAgentRecording() {
-  if (!agentRecorder || !agentRecording) return;
-  agentAlwaysListen = false;
-  agentExpectCommand = false;
-  if (agentRecordTimer) {
-    clearTimeout(agentRecordTimer);
-    agentRecordTimer = null;
-  }
-  if (agentRestartTimer) {
-    clearTimeout(agentRestartTimer);
-    agentRestartTimer = null;
-  }
-  if (agentCommandTimer) {
-    clearTimeout(agentCommandTimer);
-    agentCommandTimer = null;
-  }
-  clearWakeWatchdog();
-  agentRecorder.stop();
-  agentRecording = false;
-  cleanupAgentAudioMonitor();
-  const micBtn = document.getElementById("agent-mic");
-  if (micBtn) {
-    micBtn.classList.remove("active");
-    micBtn.textContent = "Mic";
-  }
-  const wakeBtn = document.getElementById("agent-wake");
-  if (wakeBtn) {
-    wakeBtn.classList.remove("active");
-    wakeBtn.textContent = "Wake";
-  }
-  setAgentStatus("Transcribing...");
-}
-
-function restoreWakeButton() {
-  const wakeBtn = document.getElementById("agent-wake");
-  if (wakeBtn) {
-    wakeBtn.classList.toggle("active", agentAlwaysListen);
-    wakeBtn.textContent = agentAlwaysListen ? "Wake On" : "Wake";
-  }
-}
-
-function startCommandCapture() {
-  if (!agentAlwaysListen) return;
-  agentExpectCommand = true;
-  setAgentStatus("Heard. Say your command...");
-  restoreWakeButton();
-  if (agentRecording || agentRestartLock) return;
-  if (agentCommandTimer) return;
-  agentCommandTimer = setTimeout(() => {
-    agentCommandTimer = null;
-    startAgentRecording(
-      document.getElementById("agent-input"),
-      document.getElementById("agent-mic"),
-      { continuous: false, preserveAlwaysListen: true, commandOnly: true }
+    mediaRecorder.start(500);
+    startAudioMonitor(
+      stream,
+      maxMs,
+      silenceMs,
+      threshold,
+      minRecordMs,
+      () => {
+        if (mediaRecorder && mediaRecorder.state === "recording") {
+          mediaRecorder.stop();
+        }
+      }
     );
-  }, 200);
+  });
 }
 
-function ensureWakeWatchdog() {
-  if (agentWakeWatchdog) return;
-  agentWakeWatchdog = setInterval(() => {
-    if (!agentAlwaysListen || agentRecording || agentRestartLock || agentExpectCommand) return;
-    scheduleWakeRestart();
-  }, 2000);
-}
-
-function clearWakeWatchdog() {
-  if (!agentWakeWatchdog) return;
-  clearInterval(agentWakeWatchdog);
-  agentWakeWatchdog = null;
-}
-
-function scheduleWakeRestart(input = document.getElementById("agent-input"), micBtn = document.getElementById("agent-mic")) {
-  if (!agentAlwaysListen || agentRecording || agentRestartLock || agentExpectCommand) return;
-  if (agentRestartTimer) return;
-  agentRestartLock = true;
-  agentRestartTimer = setTimeout(() => {
-    agentRestartTimer = null;
-    agentRestartLock = false;
-    agentListenCooldown = false;
-    if (agentAlwaysListen && !agentRecording) {
-      startAgentRecording(input, micBtn, { continuous: true });
-    }
-  }, 600);
-}
-
-function resumeWakeListening() {
-  if (!agentAlwaysListen) return;
-  agentExpectCommand = false;
-  if (agentCommandTimer) {
-    clearTimeout(agentCommandTimer);
-    agentCommandTimer = null;
+function stopCurrentRecording() {
+  stopAudioMonitor();
+  if (mediaRecorder && mediaRecorder.state === "recording") {
+    mediaRecorder.stop();
   }
-  setAgentStatus("Listening for 'hey vista'...");
-  restoreWakeButton();
-  ensureWakeWatchdog();
-  scheduleWakeRestart();
 }
 
 function getVoiceMaxMs() {
@@ -2367,71 +2366,115 @@ function getVoiceMaxMs() {
   return Number.isFinite(value) ? value : 12000;
 }
 
-function cleanupAgentAudioMonitor() {
-  if (agentSilenceCheckId) {
-    cancelAnimationFrame(agentSilenceCheckId);
-    agentSilenceCheckId = null;
-  }
-  agentSilenceStart = null;
-  agentRecordStart = null;
-  if (agentRecordTimer) {
-    clearTimeout(agentRecordTimer);
-    agentRecordTimer = null;
-  }
-  if (agentAudioContext) {
-    agentAudioContext.close();
-    agentAudioContext = null;
+async function transcribe(base64, mime) {
+  const res = await fetch(`${API_BASE}/api/transcribe`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ audio: base64, mime })
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Transcription failed");
+  return data.text || "";
+}
+
+async function startManualRecording() {
+  if (listenState !== STATE.IDLE) return;
+  transition(STATE.RECORDING);
+  try {
+    await startOneRecording({
+      maxMs: getVoiceMaxMs(),
+      silenceMs: 2400,
+      threshold: 0.005,
+      minRecordMs: 900,
+      onResult: async (base64, mime) => {
+        transition(STATE.PROCESSING);
+        try {
+          const text = await transcribe(base64, mime);
+          if (text && !isTrivialTranscript(text)) {
+            const input = document.getElementById("agent-input");
+            if (input) input.value = text;
+          }
+        } catch (err) {
+          setAgentStatus(`Transcription failed: ${err.message}`);
+        } finally {
+          transition(STATE.IDLE);
+          releaseStream();
+        }
+      }
+    });
+  } catch (err) {
+    setAgentStatus(`Mic error: ${err.message}`);
+    transition(STATE.IDLE);
+    releaseStream();
   }
 }
 
-function startAgentAudioMonitor(stream) {
-  cleanupAgentAudioMonitor();
-  const maxMs = getVoiceMaxMs();
-  const minRecordMs = 900;
-  const silenceMs = 2400;
-  const threshold = 0.005;
-  const AudioCtx = window.AudioContext || window.webkitAudioContext;
-  if (!AudioCtx) {
-    agentRecordTimer = setTimeout(() => {
-      if (agentRecorder && agentRecording) agentRecorder.stop();
-    }, maxMs);
+function stopManualRecording() {
+  if (listenState !== STATE.RECORDING) return;
+  stopCurrentRecording();
+}
+
+async function startWakeListening() {
+  if (listenState !== STATE.IDLE) return;
+  transition(STATE.LISTENING);
+  wakeLoop();
+}
+
+function stopWakeListening() {
+  if (listenState === STATE.IDLE) return;
+  stopCurrentRecording();
+  releaseStream();
+  transition(STATE.IDLE);
+}
+
+async function wakeLoop() {
+  if (listenState !== STATE.LISTENING) return;
+  try {
+    transition(STATE.RECORDING);
+    await startOneRecording({
+      maxMs: getVoiceMaxMs(),
+      silenceMs: 2400,
+      threshold: 0.005,
+      minRecordMs: 900,
+      onResult: async (base64, mime) => {
+        if (listenState !== STATE.LISTENING) return;
+        transition(STATE.PROCESSING);
+        try {
+          const text = await transcribe(base64, mime);
+          if (!text || isTrivialTranscript(text)) {
+            transition(STATE.LISTENING);
+            return;
+          }
+          const command = extractWakeCommand(text);
+          if (command === null) {
+            transition(STATE.LISTENING);
+            return;
+          }
+          flashWakeHeard();
+          if (!command) {
+            setAgentStatus("Heard. Say your command...");
+            transition(STATE.LISTENING);
+            return;
+          }
+          const input = document.getElementById("agent-input");
+          if (input) input.value = command;
+          await sendAgentMessage();
+          transition(STATE.LISTENING);
+        } catch (err) {
+          setAgentStatus(`Error: ${err.message}`);
+          transition(STATE.LISTENING);
+        }
+      }
+    });
+  } catch (err) {
+    setAgentStatus(`Mic error: ${err.message}`);
+    transition(STATE.IDLE);
+    releaseStream();
     return;
   }
-  agentAudioContext = new AudioCtx();
-  const source = agentAudioContext.createMediaStreamSource(stream);
-  const analyser = agentAudioContext.createAnalyser();
-  analyser.fftSize = 2048;
-  source.connect(analyser);
-  const data = new Uint8Array(analyser.fftSize);
-  agentRecordStart = performance.now();
-
-  const check = () => {
-    if (!agentRecording || !agentRecorder) return;
-    analyser.getByteTimeDomainData(data);
-    let sum = 0;
-    for (let i = 0; i < data.length; i += 1) {
-      const v = (data[i] - 128) / 128;
-      sum += v * v;
-    }
-    const rms = Math.sqrt(sum / data.length);
-    const now = performance.now();
-    const elapsed = now - agentRecordStart;
-    if (rms < threshold) {
-      if (!agentSilenceStart) agentSilenceStart = now;
-      if (elapsed >= minRecordMs && now - agentSilenceStart >= silenceMs) {
-        agentRecorder.stop();
-        return;
-      }
-    } else {
-      agentSilenceStart = null;
-    }
-    if (now - agentRecordStart >= maxMs) {
-      agentRecorder.stop();
-      return;
-    }
-    agentSilenceCheckId = requestAnimationFrame(check);
-  };
-  agentSilenceCheckId = requestAnimationFrame(check);
+  if (listenState === STATE.LISTENING) {
+    setTimeout(wakeLoop, 100);
+  }
 }
 
 function blobToBase64(blob) {
@@ -2445,66 +2488,6 @@ function blobToBase64(blob) {
     reader.onerror = reject;
     reader.readAsDataURL(blob);
   });
-}
-
-async function transcribeAgentAudio(base64, mime, input) {
-  try {
-    const res = await fetch(`${API_BASE}/api/transcribe`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ audio: base64, mime })
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      throw new Error(data.error || "Transcription failed");
-    }
-    if (data.text) {
-      if (isTrivialTranscript(data.text)) {
-        if (agentExpectCommand) {
-          agentExpectCommand = false;
-        }
-        setAgentStatus("No speech detected.");
-        return;
-      }
-      if (agentAlwaysListen) {
-        if (agentExpectCommand) {
-          agentExpectCommand = false;
-          input.value = data.text;
-          await sendAgentMessage();
-          return;
-        }
-        const command = extractWakeCommand(data.text);
-        if (command === null) {
-          setAgentStatus("Listening for 'hey vista'...");
-          return;
-        }
-        flashWakeHeard();
-        startCommandCapture();
-        return;
-      } else {
-        input.value = data.text;
-        setAgentStatus("Ready.");
-        return;
-      }
-    } else {
-      if (agentExpectCommand) {
-        agentExpectCommand = false;
-      }
-      setAgentStatus("No speech detected.");
-    }
-  } catch (err) {
-    setAgentStatus(`Mic error: ${err.message}`);
-  } finally {
-    const micBtn = document.getElementById("agent-mic");
-    if (micBtn) {
-      micBtn.classList.remove("active");
-      micBtn.textContent = "Mic";
-    }
-    restoreWakeButton();
-    if (agentAlwaysListen && !agentExpectCommand) {
-      resumeWakeListening();
-    }
-  }
 }
 
 function buildAgentSummary() {
@@ -4030,9 +4013,6 @@ async function sendAgentMessage() {
   } finally {
     if (button) button.disabled = false;
     hidePresenterActivity();
-    if (agentAlwaysListen) {
-      resumeWakeListening();
-    }
   }
 }
 
@@ -4079,7 +4059,6 @@ function applyAgentResult(tool, result, args, fallbackText) {
     buildCatalog(images.length);
     setStatus(`Loaded ${images.length} images.`);
     addHistory(result.source || "unsplash", keyword, images);
-    resumeWakeListening();
   }
 
   if (tool === "generate_ai") {
@@ -4096,7 +4075,6 @@ function applyAgentResult(tool, result, args, fallbackText) {
     buildCatalog(images.length);
     setStatus(`Generated ${images.length} images.`);
     addHistory("flux", keyword, images);
-    resumeWakeListening();
   }
 
   if (tool === "refine_image") {
@@ -4113,7 +4091,6 @@ function applyAgentResult(tool, result, args, fallbackText) {
     lastRefinedUrl = image;
     updateHistoryForRefine(image);
     updateRefineStatus("Refine complete.");
-    resumeWakeListening();
   }
 
   if (tool === "set_view") {
