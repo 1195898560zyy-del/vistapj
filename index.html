@@ -2430,7 +2430,6 @@ function stopWakeListening() {
 async function wakeLoop() {
   if (listenState !== STATE.LISTENING) return;
   try {
-    transition(STATE.RECORDING);
     await startOneRecording({
       maxMs: getVoiceMaxMs(),
       silenceMs: 2400,
