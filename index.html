@@ -1973,6 +1973,8 @@ let audioMaxTimer = null;
 let silenceStart = null;
 let recordStart = null;
 let agentRecordMime = "audio/webm";
+let isWakeMode = false;
+let expectCommand = false;
 
 const HISTORY_KEY = "vista_result_history_v1";
 const HISTORY_LIMIT = 5;
@@ -2219,7 +2221,7 @@ function updateVoiceUI() {
   const labels = {
     [STATE.IDLE]: { mic: "Mic", wake: "Wake", status: "Ready." },
     [STATE.LISTENING]: { mic: "Mic", wake: "Wake On", status: "Listening for 'hey vista'..." },
-    [STATE.RECORDING]: { mic: "Stop", wake: "Wake On", status: "Recording..." },
+    [STATE.RECORDING]: { mic: "Stop", wake: "Wake On", status: expectCommand ? "Say your command..." : "Recording..." },
     [STATE.PROCESSING]: { mic: "...", wake: "...", status: "Processing..." }
   };
   const label = labels[listenState];
@@ -2229,8 +2231,8 @@ function updateVoiceUI() {
     micBtn.classList.toggle("active", listenState === STATE.RECORDING);
   }
   if (wakeBtn) {
-    wakeBtn.textContent = label.wake;
-    wakeBtn.classList.toggle("active", listenState === STATE.LISTENING || listenState === STATE.RECORDING);
+    wakeBtn.textContent = isWakeMode ? "Wake On" : "Wake";
+    wakeBtn.classList.toggle("active", isWakeMode);
   }
   if (statusEl && listenState !== STATE.PROCESSING) {
     statusEl.textContent = label.status;
@@ -2410,33 +2412,38 @@ async function startManualRecording() {
 }
 
 function stopManualRecording() {
-  if (listenState !== STATE.RECORDING) return;
+  if (listenState !== STATE.RECORDING || isWakeMode) return;
   stopCurrentRecording();
 }
 
 async function startWakeListening() {
   if (listenState !== STATE.IDLE) return;
+  isWakeMode = true;
+  expectCommand = false;
   transition(STATE.LISTENING);
   wakeLoop();
 }
 
 function stopWakeListening() {
   if (listenState === STATE.IDLE) return;
+  isWakeMode = false;
+  expectCommand = false;
   stopCurrentRecording();
   releaseStream();
   transition(STATE.IDLE);
 }
 
 async function wakeLoop() {
-  if (listenState !== STATE.LISTENING) return;
+  if (!isWakeMode) return;
   try {
+    transition(STATE.RECORDING);
     await startOneRecording({
       maxMs: getVoiceMaxMs(),
       silenceMs: 2400,
       threshold: 0.005,
       minRecordMs: 900,
       onResult: async (base64, mime) => {
-        if (listenState !== STATE.LISTENING) return;
+        if (!isWakeMode) return;
         transition(STATE.PROCESSING);
         try {
           const text = await transcribe(base64, mime);
@@ -2451,8 +2458,32 @@ async function wakeLoop() {
           }
           flashWakeHeard();
           if (!command) {
+            expectCommand = true;
             setAgentStatus("Heard. Say your command...");
-            transition(STATE.LISTENING);
+            transition(STATE.RECORDING);
+            await startOneRecording({
+              maxMs: getVoiceMaxMs(),
+              silenceMs: 2400,
+              threshold: 0.005,
+              minRecordMs: 900,
+              onResult: async (base64Follow, mimeFollow) => {
+                if (!isWakeMode) return;
+                transition(STATE.PROCESSING);
+                try {
+                  const cmdText = await transcribe(base64Follow, mimeFollow);
+                  if (cmdText && !isTrivialTranscript(cmdText)) {
+                    const input = document.getElementById("agent-input");
+                    if (input) input.value = cmdText;
+                    await sendAgentMessage();
+                  }
+                } catch (err) {
+                  setAgentStatus(`Error: ${err.message}`);
+                } finally {
+                  expectCommand = false;
+                  if (isWakeMode) transition(STATE.LISTENING);
+                }
+              }
+            });
             return;
           }
           const input = document.getElementById("agent-input");
@@ -2471,7 +2502,7 @@ async function wakeLoop() {
     releaseStream();
     return;
   }
-  if (listenState === STATE.LISTENING) {
+  if (isWakeMode && listenState === STATE.LISTENING) {
     setTimeout(wakeLoop, 100);
   }
 }
