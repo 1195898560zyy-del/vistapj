@@ -629,7 +629,6 @@
       height: 12px;
     }
 
-    .agent-fab.open .agent-panel,
     .agent-fab:hover .agent-panel,
     .agent-fab:focus-within .agent-panel {
       max-height: 360px;
@@ -4186,7 +4185,6 @@ function initAgentBubble() {
   if (!fab || !bubble) return;
 
   const POS_KEY = "vista_agent_pos_v1";
-  const canHover = window.matchMedia && window.matchMedia("(hover: hover) and (pointer: fine)").matches;
   let drag = { active: false, moved: false, startX: 0, startY: 0, x: 0, y: 0 };
 
   function clamp(value, min, max) {
@@ -4264,19 +4262,7 @@ function initAgentBubble() {
     bubble.releasePointerCapture(e.pointerId);
     fab.classList.remove("dragging");
     snap();
-    if (!drag.moved && e.pointerType === "touch") {
-      fab.classList.toggle("open");
-    }
   });
-
-  if (canHover) {
-    fab.addEventListener("mouseenter", () => {
-      if (!drag.active) fab.classList.add("open");
-    });
-    fab.addEventListener("mouseleave", () => {
-      if (!drag.active) fab.classList.remove("open");
-    });
-  }
 
   window.addEventListener("resize", () => {
     applyPosition(drag.x, drag.y);
