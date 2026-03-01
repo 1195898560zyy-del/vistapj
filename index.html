@@ -2146,7 +2146,18 @@ function initAgentVoice() {
   });
 }
 
-const WAKE_WORDS = ["hey vista", "hi vista"];
+const WAKE_WORDS = [
+  "hey vista",
+  "hi vista",
+  "hey vesta",
+  "hi vesta",
+  "hey vasta",
+  "hi vasta",
+  "hey viste",
+  "hi viste",
+  "hey visda",
+  "hi visda"
+];
 
 function isTrivialTranscript(text) {
   const raw = String(text || "").trim().toLowerCase();
@@ -2169,11 +2180,12 @@ function extractWakeCommand(text) {
     }
   }
   if (!matched) return null;
-  const wakeRegex = /(hey|hi)\s*vista/i;
+  const wakeRegex = /(hey|hi)\s*(vista|vesta|vasta|viste|visda)/i;
   let rest = raw.replace(wakeRegex, "").trim();
   if (!rest) {
-    rest = raw.replace(/(heyvista|hivista)/i, "").trim();
+    rest = raw.replace(/(hey|hi)(vista|vesta|vasta|viste|visda)/i, "").trim();
   }
+  if (!rest || isTrivialTranscript(rest)) return "";
   return rest;
 }
 
@@ -2466,14 +2478,9 @@ async function transcribeAgentAudio(base64, mime, input) {
           setAgentStatus("Listening for 'hey vista'...");
           return;
         }
-        if (!command) {
-          flashWakeHeard();
-          startCommandCapture();
-          return;
-        }
         flashWakeHeard();
-        input.value = command;
-        await sendAgentMessage();
+        startCommandCapture();
+        return;
       } else {
         input.value = data.text;
         setAgentStatus("Ready.");
@@ -3650,6 +3657,7 @@ initInfiniteSearch();
 initGalleryInteractions();
 resetAgentLog();
 updateGalleryActive();
+setInterval(refreshWeather, WEATHER_TTL);
 
 function initSearchDockDrag() {
   const dock = document.getElementById("search-dock");
