@@ -2366,6 +2366,14 @@ function initLikes() {
     toggle.addEventListener("click", () => {
       panel.classList.toggle("open");
     });
+    panel.addEventListener("mouseleave", () => {
+      panel.classList.remove("open");
+    });
+    document.addEventListener("pointerdown", (event) => {
+      if (!panel.classList.contains("open")) return;
+      if (panel.contains(event.target) || toggle.contains(event.target)) return;
+      panel.classList.remove("open");
+    });
   }
   if (clearBtn) {
     clearBtn.addEventListener("click", () => {
@@ -4544,12 +4552,24 @@ function setSidebarCollapsed(collapsed) {
 
 function initSidebarToggle() {
   const btn = document.getElementById("sidebar-toggle");
+  const side = document.querySelector(".app-side");
   if (!btn) return;
   const saved = localStorage.getItem("vista_sidebar_collapsed") === "1";
   setSidebarCollapsed(saved);
   btn.addEventListener("click", () => {
     const isCollapsed = document.body.classList.contains("sidebar-collapsed");
     setSidebarCollapsed(!isCollapsed);
+  });
+  if (side) {
+    side.addEventListener("mouseleave", () => {
+      setSidebarCollapsed(true);
+    });
+  }
+  document.addEventListener("pointerdown", (event) => {
+    if (document.body.classList.contains("sidebar-collapsed")) return;
+    if (side && side.contains(event.target)) return;
+    if (btn.contains(event.target)) return;
+    setSidebarCollapsed(true);
   });
 }
 
