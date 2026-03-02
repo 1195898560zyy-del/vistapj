@@ -1013,8 +1013,8 @@
       transform: translateY(10px) scale(0.98);
     }
 
-    body.is-active .weather-content,
-    body.is-active .weather-source {
+    body.is-active[data-view="app"] .weather-content,
+    body.is-active[data-view="app"] .weather-source {
       opacity: 0;
       transform: translateY(12px);
     }
@@ -1775,10 +1775,6 @@
         <span id="weather-time">Updated —</span>
       </div>
     </div>
-    <div class="weather-source">
-      <span id="weather-source">Source: Unsplash</span>
-      <button class="weather-like like-btn" id="weather-like" type="button" aria-pressed="false" aria-label="Like weather image">&#9825;</button>
-    </div>
   </div>
 
   <div class="layer layer-ui">
@@ -1791,6 +1787,11 @@
         <button class="sidebar-toggle" id="sidebar-toggle" type="button" aria-pressed="false">Settings</button>
       </div>
     </header>
+
+    <div class="weather-source">
+      <span id="weather-source">Source: Unsplash</span>
+      <button class="weather-like like-btn" id="weather-like" type="button" aria-pressed="false" aria-label="Like weather image">&#9825;</button>
+    </div>
 
     <div class="liked-panel" id="liked-panel">
       <div class="liked-header">
@@ -4522,6 +4523,7 @@ function setViewMode(mode) {
   const showApp = mode !== "weather";
   if (weatherView) weatherView.classList.remove("view-hidden");
   if (appView) appView.classList.toggle("view-hidden", !showApp);
+  document.body.dataset.view = showApp ? "app" : "weather";
   localStorage.setItem("vista_view_mode", mode);
 }
 
