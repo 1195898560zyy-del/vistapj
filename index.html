@@ -2961,20 +2961,7 @@ function formatWeatherTime(dt, tz) {
 
 function weatherToQuery(main = "", description = "", isNight = false, city = "") {
   const raw = (description || main || "weather").trim() || "weather";
-  const lower = raw.toLowerCase();
-  const isRain =
-    lower.includes("rain") ||
-    lower.includes("drizzle") ||
-    lower.includes("shower") ||
-    lower.includes("storm") ||
-    lower.includes("thunder");
-  if (!isRain) {
-    return isNight ? `${raw} night` : raw;
-  }
-  if (isNight) {
-    return "rainy city night wet street reflections";
-  }
-  return "rainy street wet road rain falling";
+  return isNight ? `${raw} night` : raw;
 }
 
 function applyWeatherUI(data) {
