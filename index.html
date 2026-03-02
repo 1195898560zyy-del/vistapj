@@ -2361,11 +2361,20 @@ function initLikes() {
     });
   }
   if (weatherBtn) {
+    weatherBtn.addEventListener("pointerdown", (event) => {
+      event.stopPropagation();
+    });
     weatherBtn.addEventListener("click", () => {
       if (!currentWeatherUrl) return;
       const label = document.getElementById("weather-source");
       const sourceText = label ? label.textContent.replace(/^Source:\s*/i, "").trim() : "";
       toggleLike(currentWeatherUrl, { type: "weather", source: sourceText });
+    });
+  }
+  const weatherWrap = document.querySelector(".weather-source");
+  if (weatherWrap) {
+    weatherWrap.addEventListener("pointerdown", (event) => {
+      event.stopPropagation();
     });
   }
   if (toggle && panel) {
