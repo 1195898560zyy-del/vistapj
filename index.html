@@ -2312,14 +2312,13 @@ function renderLikedPanel() {
         }
         return;
       }
-      const imgs = getImages();
-      const idx = [...imgs].findIndex((imgEl) => imgEl.src === item.url);
-      if (idx >= 0) {
-        setViewMode("app");
-        setActive(idx);
-        return;
-      }
-      window.open(item.url, "_blank", "noopener");
+      setViewMode("app");
+      clearGallery();
+      const g = document.getElementById("gallery");
+      if (g) g.innerHTML = "";
+      createImg(item.url, "Liked image", true, item.source || "Liked");
+      buildCatalog(1);
+      setStatus("Liked image.");
     });
     grid.appendChild(btn);
   });
