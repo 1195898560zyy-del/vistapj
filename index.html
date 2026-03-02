@@ -6,6 +6,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <style>
+    :root {
+      --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
+      --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+      --dur-fast: 0.18s;
+      --dur-med: 0.32s;
+      --dur-slow: 0.6s;
+    }
+
     body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       background: #f5f7fb;
@@ -38,6 +46,11 @@
       font-size: 12px;
       font-weight: 600;
       cursor: pointer;
+      transition: transform var(--dur-fast) var(--ease-soft),
+        box-shadow var(--dur-fast) var(--ease-soft),
+        background var(--dur-fast) var(--ease-soft),
+        color var(--dur-fast) var(--ease-soft),
+        border-color var(--dur-fast) var(--ease-soft);
     }
 
     .view-toggle button.active {
@@ -97,7 +110,7 @@
       background-size: cover;
       background-position: center;
       opacity: 0;
-      transition: opacity 1.2s ease;
+      transition: opacity 1.2s var(--ease-soft);
       animation: slowZoom 18s ease-in-out infinite;
     }
 
@@ -106,7 +119,7 @@
     }
 
     .weather-bg {
-      transition: filter 0.35s ease;
+      transition: filter 0.45s var(--ease-soft);
     }
 
     body.is-active .weather-bg {
@@ -115,12 +128,12 @@
 
     .gallery-active .weather-bg {
       filter: blur(4px) brightness(0.7);
-      transition: filter 0.3s ease;
+      transition: filter 0.45s var(--ease-soft);
     }
 
     .gallery-active .weather-content {
       opacity: 0.6;
-      transition: opacity 0.3s ease;
+      transition: opacity 0.35s var(--ease-soft);
     }
 
     @keyframes slowZoom {
@@ -561,7 +574,7 @@
       display: grid;
       gap: 10px;
       transform: translate3d(0, 0, 0);
-      transition: transform 0.2s ease;
+      transition: transform var(--dur-med) var(--ease-soft);
       pointer-events: auto;
     }
 
@@ -622,7 +635,9 @@
       opacity: 0;
       transform: translateY(8px);
       pointer-events: none;
-      transition: max-height 0.4s ease, opacity 0.35s ease, transform 0.35s ease;
+      transition: max-height 0.45s var(--ease-soft),
+        opacity 0.35s var(--ease-soft),
+        transform 0.35s var(--ease-soft);
       will-change: max-height, opacity, transform;
       position: absolute;
       right: 0;
@@ -1044,7 +1059,8 @@
       font-size: 12px;
       letter-spacing: 0.4px;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: background var(--dur-fast) var(--ease-soft),
+        transform var(--dur-fast) var(--ease-soft);
     }
 
     .sidebar-toggle:hover {
@@ -1099,7 +1115,9 @@
       opacity: 0;
       transform: translateX(-12px);
       pointer-events: none;
-      transition: max-height 0.4s ease, opacity 0.35s ease, transform 0.35s ease;
+      transition: max-height 0.45s var(--ease-soft),
+        opacity 0.35s var(--ease-soft),
+        transform 0.35s var(--ease-soft);
       overflow: hidden;
       border-radius: 24px;
     }
