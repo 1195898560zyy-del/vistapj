@@ -555,8 +555,8 @@
 
     .agent-fab {
       position: fixed;
-      right: 24px;
-      bottom: 24px;
+      left: 0;
+      top: 0;
       z-index: 999;
       display: grid;
       gap: 10px;
@@ -3707,6 +3707,9 @@ function initSearchDockDrag() {
     } catch (err) {
       // ignore stored position errors
     }
+  } else {
+    drag.x = window.innerWidth - bubble.offsetWidth - 24;
+    drag.y = window.innerHeight - bubble.offsetHeight - 24;
   }
   applyPosition(drag.x, drag.y);
 
