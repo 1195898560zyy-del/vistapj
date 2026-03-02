@@ -4197,48 +4197,26 @@ function initAgentBubble() {
   function applyPosition(x, y) {
     const maxX = window.innerWidth - bubble.offsetWidth - 16;
     const maxY = window.innerHeight - bubble.offsetHeight - 16;
-    const nextX = clamp(x, 16, maxX);
-    const nextY = clamp(y, 16, maxY);
+    const nextX = clamp(x, 16, Math.max(16, maxX));
+    const nextY = clamp(y, 16, Math.max(16, maxY));
     fab.style.transform = `translate3d(${nextX}px, ${nextY}px, 0)`;
     drag.x = nextX;
     drag.y = nextY;
-  }
-
-  function snap() {
-    const maxX = window.innerWidth - bubble.offsetWidth - 16;
-    const toLeft = drag.x < window.innerWidth / 2;
-    const nextX = toLeft ? 16 : maxX;
-    applyPosition(nextX, drag.y);
-    fab.classList.toggle("left", toLeft);
-    fab.classList.toggle("right", !toLeft);
-    localStorage.setItem(POS_KEY, JSON.stringify({ x: nextX, y: drag.y }));
   }
 
   const stored = localStorage.getItem(POS_KEY);
   if (stored) {
     try {
       const pos = JSON.parse(stored);
-      if (!Number.isFinite(pos.x) || !Number.isFinite(pos.y)) {
-        throw new Error("Invalid stored position");
-      }
-      applyPosition(pos.x, pos.y);
-      fab.classList.toggle("left", pos.x < window.innerWidth / 2);
-      fab.classList.toggle("right", pos.x >= window.innerWidth / 2);
-      const rect = fab.getBoundingClientRect();
-      const outOfView = rect.right < 0 || rect.left > window.innerWidth || rect.bottom < 0 || rect.top > window.innerHeight;
-      if (outOfView) {
-        localStorage.removeItem(POS_KEY);
-        applyPosition(0, 0);
-        snap();
+      if (Number.isFinite(pos.x) && Number.isFinite(pos.y)) {
+        drag.x = pos.x;
+        drag.y = pos.y;
       }
     } catch (err) {
-      applyPosition(0, 0);
-      snap();
+      // ignore stored position errors
     }
-  } else {
-    applyPosition(0, 0);
-    snap();
   }
+  applyPosition(drag.x, drag.y);
 
   bubble.addEventListener("pointerdown", (e) => {
     drag.active = true;
@@ -4264,12 +4242,11 @@ function initAgentBubble() {
     drag.active = false;
     bubble.releasePointerCapture(e.pointerId);
     fab.classList.remove("dragging");
-    snap();
+    localStorage.setItem(POS_KEY, JSON.stringify({ x: drag.x, y: drag.y }));
   });
 
   window.addEventListener("resize", () => {
     applyPosition(drag.x, drag.y);
-    snap();
   });
 }
 
