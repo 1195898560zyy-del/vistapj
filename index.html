@@ -1082,6 +1082,8 @@
       width: min(300px, calc(100vw - 48px));
       max-height: 60vh;
       display: none;
+      opacity: 0;
+      transform: translateY(-6px) scale(0.98);
       flex-direction: column;
       gap: 12px;
       padding: 16px;
@@ -1092,10 +1094,14 @@
       backdrop-filter: blur(14px);
       z-index: 7;
       overflow: hidden;
+      transition: opacity var(--dur-med) var(--ease-soft),
+        transform var(--dur-med) var(--ease-soft);
     }
 
     .liked-panel.open {
       display: flex;
+      opacity: 1;
+      transform: translateY(0) scale(1);
     }
 
     .liked-header {
@@ -2363,16 +2369,33 @@ function initLikes() {
     });
   }
   if (toggle && panel) {
+    let likedCloseTimer = null;
+    const openPanel = () => {
+      if (likedCloseTimer) {
+        clearTimeout(likedCloseTimer);
+        likedCloseTimer = null;
+      }
+      panel.classList.add("open");
+    };
+    const closePanel = () => {
+      if (likedCloseTimer) clearTimeout(likedCloseTimer);
+      likedCloseTimer = setTimeout(() => {
+        panel.classList.remove("open");
+      }, 120);
+    };
     toggle.addEventListener("click", () => {
-      panel.classList.toggle("open");
+      if (panel.classList.contains("open")) {
+        closePanel();
+      } else {
+        openPanel();
+      }
     });
-    panel.addEventListener("mouseleave", () => {
-      panel.classList.remove("open");
-    });
+    panel.addEventListener("mouseenter", openPanel);
+    panel.addEventListener("mouseleave", closePanel);
     document.addEventListener("pointerdown", (event) => {
       if (!panel.classList.contains("open")) return;
       if (panel.contains(event.target) || toggle.contains(event.target)) return;
-      panel.classList.remove("open");
+      closePanel();
     });
   }
   if (clearBtn) {
@@ -4556,20 +4579,33 @@ function initSidebarToggle() {
   if (!btn) return;
   const saved = localStorage.getItem("vista_sidebar_collapsed") === "1";
   setSidebarCollapsed(saved);
+  let sideCloseTimer = null;
+  const openSide = () => {
+    if (sideCloseTimer) {
+      clearTimeout(sideCloseTimer);
+      sideCloseTimer = null;
+    }
+    setSidebarCollapsed(false);
+  };
+  const closeSide = () => {
+    if (sideCloseTimer) clearTimeout(sideCloseTimer);
+    sideCloseTimer = setTimeout(() => {
+      setSidebarCollapsed(true);
+    }, 120);
+  };
   btn.addEventListener("click", () => {
     const isCollapsed = document.body.classList.contains("sidebar-collapsed");
     setSidebarCollapsed(!isCollapsed);
   });
   if (side) {
-    side.addEventListener("mouseleave", () => {
-      setSidebarCollapsed(true);
-    });
+    side.addEventListener("mouseenter", openSide);
+    side.addEventListener("mouseleave", closeSide);
   }
   document.addEventListener("pointerdown", (event) => {
     if (document.body.classList.contains("sidebar-collapsed")) return;
     if (side && side.contains(event.target)) return;
     if (btn.contains(event.target)) return;
-    setSidebarCollapsed(true);
+    closeSide();
   });
 }
 
