@@ -2306,10 +2306,13 @@ function renderLikedPanel() {
     btn.appendChild(tag);
     btn.addEventListener("click", () => {
       if (item.type === "weather") {
-        setViewMode("weather");
-        if (item.url) {
-          setWeatherBackground(item.url);
-        }
+        setViewMode("app");
+        clearGallery();
+        const g = document.getElementById("gallery");
+        if (g) g.innerHTML = "";
+        createImg(item.url, "Weather image", true, item.source || "Weather");
+        buildCatalog(1);
+        setStatus("Liked weather image.");
         return;
       }
       setViewMode("app");
