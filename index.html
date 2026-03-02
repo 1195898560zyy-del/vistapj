@@ -595,6 +595,11 @@
       animation: none;
     }
 
+    .agent-fab:hover .agent-bubble,
+    .agent-fab:focus-within .agent-bubble {
+      animation: none;
+    }
+
     @keyframes bubbleFloat {
       0% { transform: translate3d(0, 0, 0); }
       50% { transform: translate3d(-6px, -8px, 0); }
@@ -617,7 +622,8 @@
       opacity: 0;
       transform: translateY(8px);
       pointer-events: none;
-      transition: max-height 0.4s ease, opacity 0.3s ease, transform 0.3s ease;
+      transition: max-height 0.4s ease, opacity 0.35s ease, transform 0.35s ease;
+      will-change: max-height, opacity, transform;
       position: absolute;
       right: 0;
       bottom: 62px;
