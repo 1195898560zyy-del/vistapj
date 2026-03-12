@@ -3575,7 +3575,7 @@ function getLoadLimit() {
 function resetSearchSession(mode, keyword, ratio) {
   searchSessionId += 1;
   const limit = getLoadLimit();
-  const startPage = 1;
+  const startPage = Math.floor(Math.random() * 5) + 1;
   searchState = {
     id: searchSessionId,
     mode,
@@ -3592,7 +3592,7 @@ function resetSearchSession(mode, keyword, ratio) {
     emptyStreak: 0,
     seen: new Set(),
     max: limit,
-    randomize: false
+    randomize: true
   };
 }
 
