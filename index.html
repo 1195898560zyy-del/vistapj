@@ -3314,7 +3314,8 @@ function restoreHistory(id) {
 }
 
 function buildRemoteUrl(id) {
-  return `${FRONTEND_BASE}/remote.html?session=${encodeURIComponent(id)}`;
+  const apiParam = encodeURIComponent(API_BASE);
+  return `${FRONTEND_BASE}/remote.html?session=${encodeURIComponent(id)}&apiBase=${apiParam}`;
 }
 
 function updateSessionUI(url, code) {

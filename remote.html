@@ -414,7 +414,13 @@
     </main>
 
     <script>
-      const API_BASE = "https://vista-backend-1-6r3t.onrender.com";
+      const DEFAULT_API_BASE = "https://vista-backend-1-6r3t.onrender.com";
+      const params = new URLSearchParams(window.location.search);
+      const apiFromUrl = params.get("apiBase");
+      if (apiFromUrl) {
+        localStorage.setItem("vista_api_base", apiFromUrl);
+      }
+      const API_BASE = apiFromUrl || localStorage.getItem("vista_api_base") || DEFAULT_API_BASE;
 
       const sessionIdEl = document.getElementById("session-id");
       const connDot = document.getElementById("conn-dot");
