@@ -416,11 +416,18 @@
     <script>
       const DEFAULT_API_BASE = "https://vista-backend-1-6r3t.onrender.com";
       const params = new URLSearchParams(window.location.search);
-      const apiFromUrl = params.get("apiBase");
+      const sanitizeApiBase = (value) => {
+        const raw = String(value || "").trim();
+        if (!raw) return "";
+        if (/github\.io/i.test(raw)) return "";
+        return raw.replace(/\/+$/, "");
+      };
+      const apiFromUrl = sanitizeApiBase(params.get("apiBase"));
       if (apiFromUrl) {
         localStorage.setItem("vista_api_base", apiFromUrl);
       }
-      const API_BASE = apiFromUrl || localStorage.getItem("vista_api_base") || DEFAULT_API_BASE;
+      const storedApi = sanitizeApiBase(localStorage.getItem("vista_api_base"));
+      const API_BASE = apiFromUrl || storedApi || DEFAULT_API_BASE;
 
       const sessionIdEl = document.getElementById("session-id");
       const connDot = document.getElementById("conn-dot");
@@ -564,6 +571,15 @@
         return messages.slice(-6).map((item) => `${item.role}: ${item.content}`).join(" | ");
       }
 
+      async function safeJson(res) {
+        const text = await res.text();
+        try {
+          return { data: JSON.parse(text), raw: text };
+        } catch (err) {
+          return { data: null, raw: text };
+        }
+      }
+
       async function sendCommand(type, payload = {}) {
         if (!sessionId) {
           setStatus("No session. Scan the QR code on the presenter.");
@@ -579,7 +595,12 @@
               command: { type, ...payload }
             })
           });
-          const data = await res.json();
+          const { data } = await safeJson(res);
+          if (!data) {
+            setConnection(false, "Disconnected");
+            setStatus("Bad API response");
+            return;
+          }
           if (!res.ok) {
             setConnection(false, "Disconnected");
             setStatus(data.error || "Send failed");
@@ -653,7 +674,10 @@
               }
             })
           });
-          const data = await res.json();
+          const { data } = await safeJson(res);
+          if (!data) {
+            throw new Error("Bad API response");
+          }
           if (!res.ok) {
             throw new Error(data.error || "Agent failed");
           }
@@ -822,7 +846,10 @@
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ audio: base64, mime })
           });
-          const data = await res.json();
+          const { data } = await safeJson(res);
+          if (!data) {
+            throw new Error("Bad API response");
+          }
           if (!res.ok) {
             throw new Error(data.error || "Transcription failed");
           }
