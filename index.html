@@ -2127,10 +2127,18 @@ const DEFAULT_API_BASE = (() => {
   }
   return "https://vista-backend-1-6r3t.onrender.com";
 })();
-const API_BASE =
-  new URLSearchParams(window.location.search).get("apiBase") ||
-  localStorage.getItem("vista_api_base") ||
-  DEFAULT_API_BASE;
+const sanitizeApiBase = (value) => {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  if (/github\.io|netlify\.app/i.test(raw)) return "";
+  return raw.replace(/\/+$/, "");
+};
+const apiFromUrl = sanitizeApiBase(new URLSearchParams(window.location.search).get("apiBase"));
+if (apiFromUrl) {
+  localStorage.setItem("vista_api_base", apiFromUrl);
+}
+const storedApi = sanitizeApiBase(localStorage.getItem("vista_api_base"));
+const API_BASE = apiFromUrl || storedApi || DEFAULT_API_BASE;
 const FRONTEND_BASE =
   new URLSearchParams(window.location.search).get("frontendBase") ||
   localStorage.getItem("vista_frontend_base") ||
