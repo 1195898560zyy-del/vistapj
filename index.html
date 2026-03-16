@@ -4481,6 +4481,16 @@ function buildAgentAck(tool) {
   if (t === "refine_image") return "Refine done. Gallery updated.";
   if (t === "refresh_weather") return "Weather refreshed.";
   if (t === "set_view") return "View updated.";
+  if (t === "play_slideshow") return "Playback started.";
+  if (t === "pause_slideshow") return "Playback paused.";
+  if (t === "next_image") return "Next image.";
+  if (t === "prev_image") return "Previous image.";
+  if (t === "download_image") return "Download started.";
+  if (t === "toggle_fit") return "Fit toggled.";
+  if (t === "open_liked") return "Liked opened.";
+  if (t === "close_liked") return "Liked closed.";
+  if (t === "open_settings") return "Settings opened.";
+  if (t === "close_settings") return "Settings closed.";
   return "Done.";
 }
 
@@ -4543,6 +4553,47 @@ function applyAgentResult(tool, result, args, fallbackText) {
 
   if (tool === "refresh_weather") {
     refreshWeather();
+  }
+
+  if (tool === "play_slideshow") {
+    startSlideshow();
+  }
+
+  if (tool === "pause_slideshow") {
+    stopSlideshow();
+  }
+
+  if (tool === "next_image") {
+    setActive(slideIndex + 1);
+  }
+
+  if (tool === "prev_image") {
+    setActive(slideIndex - 1);
+  }
+
+  if (tool === "download_image") {
+    downloadCurrent();
+  }
+
+  if (tool === "toggle_fit") {
+    const fitSelect = document.getElementById("fit-select");
+    const next = fitSelect && fitSelect.value === "cover" ? "contain" : "cover";
+    if (fitSelect) fitSelect.value = next;
+    localStorage.setItem("vista_fit_mode", next);
+    applyFitMode(next);
+  }
+
+  if (tool === "open_liked" || tool === "close_liked") {
+    const panel = document.getElementById("liked-panel");
+    if (panel) panel.classList.toggle("open", tool === "open_liked");
+  }
+
+  if (tool === "open_settings") {
+    setSidebarCollapsed(false);
+  }
+
+  if (tool === "close_settings") {
+    setSidebarCollapsed(true);
   }
 }
 
