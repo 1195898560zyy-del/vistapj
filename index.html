@@ -3977,8 +3977,7 @@ function searchOrGenerate() {
 }
 
 function promptNeedsText(prompt) {
-  const text = String(prompt || "").toLowerCase();
-  return /(?:\btext\b|\bwords?\b|\bcaption\b|\bquote\b|\bslogan\b|\btitle\b|\bheadline\b|\blogo\b|\bsign\b|\bsignage\b|\bposter\b|\blabel\b|\bbrand\b|\bwrite\b|文字|字体|字样|标语|标题|海报|招牌|水印)/i.test(text);
+  return false;
 }
 
 function mapOpenAiSize(aspectRatio) {
