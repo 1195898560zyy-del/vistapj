@@ -419,7 +419,9 @@
       const sanitizeApiBase = (value) => {
         const raw = String(value || "").trim();
         if (!raw) return "";
-        if (/github\.io/i.test(raw)) return "";
+        if (!/^https?:\/\//i.test(raw)) return "";
+        if (/github\.io|netlify\.app/i.test(raw)) return "";
+        if (raw.includes(window.location.host)) return "";
         return raw.replace(/\/+$/, "");
       };
       const apiFromUrl = sanitizeApiBase(params.get("apiBase"));
