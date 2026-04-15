@@ -6,14 +6,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <style>
-    :root {
-      --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
-      --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
-      --dur-fast: 0.18s;
-      --dur-med: 0.32s;
-      --dur-slow: 0.6s;
-    }
-
     body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       background: #f5f7fb;
@@ -46,11 +38,6 @@
       font-size: 12px;
       font-weight: 600;
       cursor: pointer;
-      transition: transform var(--dur-fast) var(--ease-soft),
-        box-shadow var(--dur-fast) var(--ease-soft),
-        background var(--dur-fast) var(--ease-soft),
-        color var(--dur-fast) var(--ease-soft),
-        border-color var(--dur-fast) var(--ease-soft);
     }
 
     .view-toggle button.active {
@@ -110,7 +97,7 @@
       background-size: cover;
       background-position: center;
       opacity: 0;
-      transition: opacity 1.2s var(--ease-soft);
+      transition: opacity 1.2s ease;
       animation: slowZoom 18s ease-in-out infinite;
     }
 
@@ -119,7 +106,7 @@
     }
 
     .weather-bg {
-      transition: filter 0.45s var(--ease-soft);
+      transition: filter 0.35s ease;
     }
 
     body.is-active .weather-bg {
@@ -128,12 +115,12 @@
 
     .gallery-active .weather-bg {
       filter: blur(4px) brightness(0.7);
-      transition: filter 0.45s var(--ease-soft);
+      transition: filter 0.3s ease;
     }
 
     .gallery-active .weather-content {
       opacity: 0.6;
-      transition: opacity 0.35s var(--ease-soft);
+      transition: opacity 0.3s ease;
     }
 
     @keyframes slowZoom {
@@ -209,10 +196,6 @@
       letter-spacing: 0.3px;
       z-index: 3;
       opacity: 0.7;
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      pointer-events: auto;
     }
 
     @media (max-width: 640px) {
@@ -572,13 +555,13 @@
 
     .agent-fab {
       position: fixed;
-      left: 0;
-      top: 0;
+      right: 24px;
+      bottom: 24px;
       z-index: 999;
       display: grid;
       gap: 10px;
       transform: translate3d(0, 0, 0);
-      transition: transform var(--dur-med) var(--ease-soft);
+      transition: transform 0.2s ease;
       pointer-events: auto;
     }
 
@@ -595,9 +578,6 @@
       box-shadow: 0 12px 30px rgba(15, 23, 42, 0.35);
       backdrop-filter: blur(8px);
       animation: bubbleFloat 6s ease-in-out infinite;
-      touch-action: none;
-      user-select: none;
-      -webkit-user-select: none;
     }
 
     .agent-bubble {
@@ -609,11 +589,6 @@
     }
 
     .agent-fab.dragging .agent-bubble {
-      animation: none;
-    }
-
-    .agent-fab:hover .agent-bubble,
-    .agent-fab:focus-within .agent-bubble {
       animation: none;
     }
 
@@ -639,10 +614,7 @@
       opacity: 0;
       transform: translateY(8px);
       pointer-events: none;
-      transition: max-height 0.45s var(--ease-soft),
-        opacity 0.35s var(--ease-soft),
-        transform 0.35s var(--ease-soft);
-      will-change: max-height, opacity, transform;
+      transition: max-height 0.4s ease, opacity 0.3s ease, transform 0.3s ease;
       position: absolute;
       right: 0;
       bottom: 62px;
@@ -657,6 +629,7 @@
       height: 12px;
     }
 
+    .agent-fab.open .agent-panel,
     .agent-fab:hover .agent-panel,
     .agent-fab:focus-within .agent-panel {
       max-height: 360px;
@@ -975,17 +948,13 @@
 
     .layer-info {
       z-index: 3;
-      pointer-events: auto;
+      pointer-events: none;
       transition: opacity 0.35s ease, transform 0.35s ease;
     }
 
     .weather-content,
     .weather-source {
       transition: opacity 0.35s ease, transform 0.35s ease;
-    }
-
-    .weather-content {
-      pointer-events: none;
     }
 
     .layer-ui {
@@ -1003,11 +972,6 @@
       pointer-events: auto;
     }
 
-    body[data-view="weather"] .layer-ui {
-      opacity: 0;
-      pointer-events: none;
-    }
-
     body.is-active .active-dim {
       opacity: 1;
       pointer-events: none;
@@ -1018,7 +982,8 @@
       transform: translateY(10px) scale(0.98);
     }
 
-    body.is-active[data-view="app"] .weather-content {
+    body.is-active .weather-content,
+    body.is-active .weather-source {
       opacity: 0;
       transform: translateY(12px);
     }
@@ -1056,118 +1021,6 @@
       gap: 12px;
     }
 
-    .like-list-toggle {
-      border-radius: 999px;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      background: rgba(255, 255, 255, 0.06);
-      color: var(--text);
-      padding: 8px 14px;
-      font-size: 12px;
-      letter-spacing: 0.4px;
-      cursor: pointer;
-      transition: background var(--dur-fast) var(--ease-soft),
-        transform var(--dur-fast) var(--ease-soft);
-    }
-
-    .like-list-toggle .count {
-      margin-left: 6px;
-      color: #f8fafc;
-      font-weight: 600;
-    }
-
-    .liked-panel {
-      position: fixed;
-      top: 76px;
-      right: 24px;
-      width: min(300px, calc(100vw - 48px));
-      max-height: 60vh;
-      display: none;
-      opacity: 0;
-      transform: translateY(-6px) scale(0.98);
-      flex-direction: column;
-      gap: 12px;
-      padding: 16px;
-      border-radius: 18px;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      background: rgba(15, 23, 42, 0.72);
-      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.4);
-      backdrop-filter: blur(14px);
-      z-index: 7;
-      overflow: hidden;
-      transition: opacity var(--dur-med) var(--ease-soft),
-        transform var(--dur-med) var(--ease-soft);
-    }
-
-    .liked-panel.open {
-      display: flex;
-      opacity: 1;
-      transform: translateY(0) scale(1);
-    }
-
-    .liked-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      font-size: 12px;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--muted);
-    }
-
-    .liked-clear {
-      border-radius: 999px;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      background: rgba(255, 255, 255, 0.06);
-      color: var(--text);
-      padding: 6px 10px;
-      font-size: 11px;
-      cursor: pointer;
-    }
-
-    .liked-grid {
-      display: grid;
-      gap: 10px;
-      grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
-      overflow-y: auto;
-      padding-right: 4px;
-    }
-
-    .liked-item {
-      position: relative;
-      border-radius: 12px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      background: rgba(255, 255, 255, 0.04);
-      height: 78px;
-      overflow: hidden;
-      cursor: pointer;
-      padding: 0;
-    }
-
-    .liked-item img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-    }
-
-    .liked-item .liked-tag {
-      position: absolute;
-      left: 8px;
-      bottom: 8px;
-      font-size: 10px;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: #f8fafc;
-      background: rgba(15, 23, 42, 0.55);
-      padding: 2px 6px;
-      border-radius: 999px;
-    }
-
-    .liked-empty {
-      font-size: 12px;
-      color: var(--muted);
-    }
-
     .brand {
       font-size: 18px;
       font-weight: 600;
@@ -1183,8 +1036,7 @@
       font-size: 12px;
       letter-spacing: 0.4px;
       cursor: pointer;
-      transition: background var(--dur-fast) var(--ease-soft),
-        transform var(--dur-fast) var(--ease-soft);
+      transition: all 0.2s ease;
     }
 
     .sidebar-toggle:hover {
@@ -1239,9 +1091,7 @@
       opacity: 0;
       transform: translateX(-12px);
       pointer-events: none;
-      transition: max-height 0.45s var(--ease-soft),
-        opacity 0.35s var(--ease-soft),
-        transform 0.35s var(--ease-soft);
+      transition: max-height 0.4s ease, opacity 0.35s ease, transform 0.35s ease;
       overflow: hidden;
       border-radius: 24px;
     }
@@ -1554,38 +1404,6 @@
       border-color: rgba(255, 69, 58, 0.4);
     }
 
-    .like-btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 16px;
-      line-height: 1;
-      border-radius: 999px;
-    }
-
-    .like-btn[aria-pressed="true"] {
-      color: #ff4d4f;
-      border-color: rgba(255, 77, 79, 0.4);
-      background: rgba(255, 77, 79, 0.12);
-    }
-
-    .weather-like {
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      background: rgba(255, 255, 255, 0.08);
-      color: #f8fafc;
-      padding: 4px 8px;
-      font-size: 12px;
-      border-radius: 999px;
-      cursor: pointer;
-      transition: background var(--dur-fast) var(--ease-soft);
-    }
-
-    .weather-like[aria-pressed="true"] {
-      color: #ff4d4f;
-      border-color: rgba(255, 77, 79, 0.6);
-      background: rgba(255, 77, 79, 0.2);
-    }
-
     .history {
       margin: 0;
     }
@@ -1785,31 +1603,16 @@
         <span id="weather-time">Updated —</span>
       </div>
     </div>
-    <div class="weather-source">
-      <span id="weather-source">Source: Unsplash</span>
-      <button class="weather-like like-btn" id="weather-like" type="button" aria-pressed="false" aria-label="Like weather image">&#9825;</button>
-    </div>
+    <div class="weather-source" id="weather-source">Source: Unsplash</div>
   </div>
 
   <div class="layer layer-ui">
     <header class="topbar">
       <div class="brand">VISTA</div>
       <div class="topbar-actions">
-        <button class="like-list-toggle" id="liked-toggle" type="button">
-          Liked <span class="count" id="liked-count">0</span>
-        </button>
         <button class="sidebar-toggle" id="sidebar-toggle" type="button" aria-pressed="false">Settings</button>
       </div>
     </header>
-
-    <div class="liked-panel" id="liked-panel">
-      <div class="liked-header">
-        <div>Liked</div>
-        <button class="liked-clear" id="liked-clear" type="button">Clear</button>
-      </div>
-      <div class="liked-grid" id="liked-grid"></div>
-      <div class="liked-empty" id="liked-empty">No likes yet.</div>
-    </div>
 
     <div id="presenter-activity" class="presenter-activity" aria-live="polite">
       <div class="presenter-activity-spinner" aria-hidden="true">
@@ -1904,7 +1707,6 @@
         <button class="ctrl-btn" onclick="stopSlideshow()">⏸</button>
         <button class="ctrl-btn" onclick="toggleFullscreen()">⛶</button>
         <button class="ctrl-btn" onclick="downloadCurrent()">↓</button>
-        <button class="ctrl-btn like-btn" id="gallery-like" type="button" aria-pressed="false" aria-label="Like image">&#9825;</button>
         <button class="ctrl-btn secondary" id="btn-idle">Idle</button>
         <button class="ctrl-btn danger" onclick="clearGallery()">✕</button>
       </div>
@@ -2127,18 +1929,10 @@ const DEFAULT_API_BASE = (() => {
   }
   return "https://vista-backend-1-6r3t.onrender.com";
 })();
-const sanitizeApiBase = (value) => {
-  const raw = String(value || "").trim();
-  if (!raw) return "";
-  if (/github\.io|netlify\.app/i.test(raw)) return "";
-  return raw.replace(/\/+$/, "");
-};
-const apiFromUrl = sanitizeApiBase(new URLSearchParams(window.location.search).get("apiBase"));
-if (apiFromUrl) {
-  localStorage.setItem("vista_api_base", apiFromUrl);
-}
-const storedApi = sanitizeApiBase(localStorage.getItem("vista_api_base"));
-const API_BASE = apiFromUrl || storedApi || DEFAULT_API_BASE;
+const API_BASE =
+  new URLSearchParams(window.location.search).get("apiBase") ||
+  localStorage.getItem("vista_api_base") ||
+  DEFAULT_API_BASE;
 const FRONTEND_BASE =
   new URLSearchParams(window.location.search).get("frontendBase") ||
   localStorage.getItem("vista_frontend_base") ||
@@ -2163,24 +1957,22 @@ let sessionID = null;
 let sessionCode = null;
 let sessionPoll = null;
 let agentLog = [];
-const STATE = {
-  IDLE: "idle",
-  LISTENING: "listening",
-  RECORDING: "recording",
-  PROCESSING: "processing"
-};
-let listenState = STATE.IDLE;
-let mediaRecorder = null;
-let audioChunks = [];
-let audioStream = null;
-let audioMonitorId = null;
-let audioContext = null;
-let audioMaxTimer = null;
-let silenceStart = null;
-let recordStart = null;
+let agentRecorder = null;
+let agentRecording = false;
+let agentRecordingChunks = [];
+let agentAlwaysListen = false;
+let agentRecordTimer = null;
+let agentListenCooldown = false;
+let agentAudioContext = null;
+let agentSilenceCheckId = null;
+let agentSilenceStart = null;
+let agentRecordStart = null;
 let agentRecordMime = "audio/webm";
-let isWakeMode = false;
-let expectCommand = false;
+let agentRestartLock = false;
+let agentRestartTimer = null;
+let agentWakeWatchdog = null;
+let agentExpectCommand = false;
+let agentCommandTimer = null;
 
 const HISTORY_KEY = "vista_result_history_v1";
 const HISTORY_LIMIT = 5;
@@ -2189,12 +1981,6 @@ const HISTORY_MAX_BYTES = 4000000;
 let lastRefinedUrl = "";
 let currentCycleId = null;
 let currentCycleRefines = 0;
-
-const LIKES_KEY = "vista_likes_v1";
-const HEART_OUTLINE = String.fromCharCode(9825);
-const HEART_FILLED = String.fromCharCode(10084);
-let likedItems = [];
-let currentWeatherUrl = "";
 
 function setStatus(msg) {
   document.getElementById("status").textContent = msg || "";
@@ -2226,207 +2012,7 @@ function setGalleryActive(active) {
   void active;
 }
 
-function updateGalleryActive() {
-  updateLikeButtons();
-}
-
-function loadLikes() {
-  try {
-    const raw = localStorage.getItem(LIKES_KEY);
-    const parsed = raw ? JSON.parse(raw) : [];
-    likedItems = Array.isArray(parsed) ? parsed : [];
-  } catch (err) {
-    likedItems = [];
-  }
-}
-
-function saveLikes() {
-  try {
-    localStorage.setItem(LIKES_KEY, JSON.stringify(likedItems));
-  } catch (err) {
-    // ignore storage errors
-  }
-}
-
-function isLiked(url) {
-  return likedItems.some((item) => item.url === url);
-}
-
-function removeLike(url) {
-  likedItems = likedItems.filter((item) => item.url !== url);
-  saveLikes();
-}
-
-function addLike(item) {
-  if (!item || !item.url || isLiked(item.url)) return;
-  likedItems.unshift({
-    url: item.url,
-    type: item.type || "gallery",
-    source: item.source || "",
-    ts: Date.now()
-  });
-  saveLikes();
-}
-
-function updateLikedCount() {
-  const countEl = document.getElementById("liked-count");
-  if (countEl) countEl.textContent = String(likedItems.length);
-}
-
-function updateLikeButtons() {
-  const galleryBtn = document.getElementById("gallery-like");
-  const weatherBtn = document.getElementById("weather-like");
-  const active = getActiveImage();
-  const galleryLiked = active && isLiked(active.src);
-  if (galleryBtn) {
-    galleryBtn.setAttribute("aria-pressed", galleryLiked ? "true" : "false");
-    galleryBtn.textContent = galleryLiked ? HEART_FILLED : HEART_OUTLINE;
-  }
-  const weatherLiked = currentWeatherUrl && isLiked(currentWeatherUrl);
-  if (weatherBtn) {
-    weatherBtn.setAttribute("aria-pressed", weatherLiked ? "true" : "false");
-    weatherBtn.textContent = weatherLiked ? HEART_FILLED : HEART_OUTLINE;
-  }
-}
-
-function renderLikedPanel() {
-  const grid = document.getElementById("liked-grid");
-  const empty = document.getElementById("liked-empty");
-  if (!grid || !empty) return;
-  grid.innerHTML = "";
-  if (!likedItems.length) {
-    empty.style.display = "block";
-    return;
-  }
-  empty.style.display = "none";
-  likedItems.forEach((item) => {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "liked-item";
-    btn.setAttribute("aria-label", "Open liked image");
-    const img = document.createElement("img");
-    img.src = item.url;
-    img.alt = item.source ? `${item.source} image` : "Liked image";
-    btn.appendChild(img);
-    const tag = document.createElement("span");
-    tag.className = "liked-tag";
-    tag.textContent = item.type === "weather" ? "Weather" : "Gallery";
-    btn.appendChild(tag);
-    btn.addEventListener("click", () => {
-      if (item.type === "weather") {
-        setViewMode("app");
-        clearGallery();
-        const g = document.getElementById("gallery");
-        if (g) g.innerHTML = "";
-        createImg(item.url, "Weather image", true, item.source || "Weather");
-        buildCatalog(1);
-        setStatus("Liked weather image.");
-        return;
-      }
-      setViewMode("app");
-      clearGallery();
-      const g = document.getElementById("gallery");
-      if (g) g.innerHTML = "";
-      createImg(item.url, "Liked image", true, item.source || "Liked");
-      buildCatalog(1);
-      setStatus("Liked image.");
-    });
-    grid.appendChild(btn);
-  });
-}
-
-function toggleLike(url, meta) {
-  if (!url) return;
-  if (isLiked(url)) {
-    removeLike(url);
-  } else {
-    addLike({
-      url,
-      type: meta && meta.type ? meta.type : "gallery",
-      source: meta && meta.source ? meta.source : ""
-    });
-  }
-  updateLikedCount();
-  updateLikeButtons();
-  renderLikedPanel();
-}
-
-function initLikes() {
-  loadLikes();
-  updateLikedCount();
-  updateLikeButtons();
-  renderLikedPanel();
-
-  const galleryBtn = document.getElementById("gallery-like");
-  const weatherBtn = document.getElementById("weather-like");
-  const toggle = document.getElementById("liked-toggle");
-  const panel = document.getElementById("liked-panel");
-  const clearBtn = document.getElementById("liked-clear");
-
-  if (galleryBtn) {
-    galleryBtn.addEventListener("click", () => {
-      const active = getActiveImage();
-      if (!active) return;
-      toggleLike(active.src, { type: "gallery", source: active.dataset.source || "" });
-    });
-  }
-  if (weatherBtn) {
-    weatherBtn.addEventListener("pointerdown", (event) => {
-      event.stopPropagation();
-    });
-    weatherBtn.addEventListener("click", () => {
-      if (!currentWeatherUrl) return;
-      const label = document.getElementById("weather-source");
-      const sourceText = label ? label.textContent.replace(/^Source:\s*/i, "").trim() : "";
-      toggleLike(currentWeatherUrl, { type: "weather", source: sourceText });
-    });
-  }
-  const weatherWrap = document.querySelector(".weather-source");
-  if (weatherWrap) {
-    weatherWrap.addEventListener("pointerdown", (event) => {
-      event.stopPropagation();
-    });
-  }
-  if (toggle && panel) {
-    let likedCloseTimer = null;
-    const openPanel = () => {
-      if (likedCloseTimer) {
-        clearTimeout(likedCloseTimer);
-        likedCloseTimer = null;
-      }
-      panel.classList.add("open");
-    };
-    const closePanel = () => {
-      if (likedCloseTimer) clearTimeout(likedCloseTimer);
-      likedCloseTimer = setTimeout(() => {
-        panel.classList.remove("open");
-      }, 120);
-    };
-    toggle.addEventListener("click", () => {
-      if (panel.classList.contains("open")) {
-        closePanel();
-      } else {
-        openPanel();
-      }
-    });
-    panel.addEventListener("mouseenter", openPanel);
-    panel.addEventListener("mouseleave", closePanel);
-    document.addEventListener("pointerdown", (event) => {
-      if (!panel.classList.contains("open")) return;
-      if (panel.contains(event.target) || toggle.contains(event.target)) return;
-      closePanel();
-    });
-  }
-  if (clearBtn) {
-    clearBtn.addEventListener("click", () => {
-      likedItems = [];
-      saveLikes();
-      updateLikedCount();
-      updateLikeButtons();
-      renderLikedPanel();
-    });
-  }
-}
+function updateGalleryActive() {}
 
 const ACTIVE_TIMEOUT_MS = 0;
 let activeTimer = null;
@@ -2529,8 +2115,9 @@ function resetAgentLog() {
 function initAgentVoice() {
   const micBtn = document.getElementById("agent-mic");
   const wakeBtn = document.getElementById("agent-wake");
+  const input = document.getElementById("agent-input");
 
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !micBtn || !wakeBtn) {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !micBtn || !wakeBtn || !input) {
     if (micBtn) {
       micBtn.disabled = true;
       micBtn.title = "Voice input not supported.";
@@ -2543,21 +2130,19 @@ function initAgentVoice() {
   }
 
   micBtn.addEventListener("click", () => {
-    if (listenState === STATE.IDLE) {
-      startManualRecording();
+    if (agentRecording) {
+      stopAgentRecording();
       return;
     }
-    if (listenState === STATE.RECORDING) {
-      stopManualRecording();
-    }
+    startAgentRecording(input, micBtn, { continuous: false });
   });
 
   wakeBtn.addEventListener("click", () => {
-    if (listenState === STATE.IDLE) {
-      startWakeListening();
+    if (agentRecording || agentAlwaysListen) {
+      stopAgentRecording();
       return;
     }
-    stopWakeListening();
+    startAgentRecording(input, micBtn, { continuous: true });
   });
 }
 
@@ -2620,157 +2205,159 @@ function getSupportedRecorderMime() {
   return "audio/webm";
 }
 
-function transition(newState) {
-  if (listenState === newState) return;
-  listenState = newState;
-  updateVoiceUI();
-}
-
-function updateVoiceUI() {
-  const micBtn = document.getElementById("agent-mic");
-  const wakeBtn = document.getElementById("agent-wake");
-  const statusEl = document.getElementById("agent-status");
-  const labels = {
-    [STATE.IDLE]: { mic: "Mic", wake: "Wake", status: "Ready." },
-    [STATE.LISTENING]: { mic: "Mic", wake: "Wake On", status: "Listening for 'hey vista'..." },
-    [STATE.RECORDING]: { mic: "Stop", wake: "Wake On", status: expectCommand ? "Say your command..." : "Recording..." },
-    [STATE.PROCESSING]: { mic: "...", wake: "...", status: "Processing..." }
-  };
-  const label = labels[listenState];
-  if (!label) return;
-  if (micBtn) {
-    micBtn.textContent = label.mic;
-    micBtn.classList.toggle("active", listenState === STATE.RECORDING);
+async function startAgentRecording(input, micBtn, options = {}) {
+  if (agentRecording) return;
+  if (agentListenCooldown) return;
+  if (agentRestartLock) return;
+  if (!options.preserveAlwaysListen) {
+    agentAlwaysListen = Boolean(options.continuous);
   }
-  if (wakeBtn) {
-    wakeBtn.textContent = isWakeMode ? "Wake On" : "Wake";
-    wakeBtn.classList.toggle("active", isWakeMode);
+  if (options.commandOnly) {
+    agentExpectCommand = true;
   }
-  if (statusEl && listenState !== STATE.PROCESSING) {
-    statusEl.textContent = label.status;
-  }
-}
-
-async function ensureStream() {
-  if (audioStream && audioStream.active) return audioStream;
-  audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-  return audioStream;
-}
-
-function releaseStream() {
-  if (!audioStream) return;
-  audioStream.getTracks().forEach((track) => track.stop());
-  audioStream = null;
-}
-
-function stopAudioMonitor() {
-  if (audioMonitorId) {
-    cancelAnimationFrame(audioMonitorId);
-    audioMonitorId = null;
-  }
-  if (audioMaxTimer) {
-    clearTimeout(audioMaxTimer);
-    audioMaxTimer = null;
-  }
-  silenceStart = null;
-  recordStart = null;
-  if (audioContext) {
-    audioContext.close();
-    audioContext = null;
-  }
-}
-
-function startAudioMonitor(stream, maxMs, silenceMs, threshold, minRecordMs, onTrigger) {
-  stopAudioMonitor();
-  silenceStart = null;
-  recordStart = performance.now();
-  const AudioCtx = window.AudioContext || window.webkitAudioContext;
-  if (!AudioCtx) {
-    audioMaxTimer = setTimeout(onTrigger, maxMs);
-    return;
-  }
-  audioContext = new AudioCtx();
-  const source = audioContext.createMediaStreamSource(stream);
-  const analyser = audioContext.createAnalyser();
-  analyser.fftSize = 1024;
-  source.connect(analyser);
-  const data = new Uint8Array(analyser.fftSize);
-
-  const check = () => {
-    analyser.getByteTimeDomainData(data);
-    let sum = 0;
-    for (let i = 0; i < data.length; i += 1) {
-      const v = (data[i] - 128) / 128;
-      sum += v * v;
-    }
-    const rms = Math.sqrt(sum / data.length);
-    const now = performance.now();
-    const elapsed = now - recordStart;
-    if (rms < threshold) {
-      if (!silenceStart) silenceStart = now;
-      if (elapsed >= minRecordMs && now - silenceStart >= silenceMs) {
-        onTrigger();
-        return;
-      }
-    } else {
-      silenceStart = null;
-    }
-    if (elapsed >= maxMs) {
-      onTrigger();
-      return;
-    }
-    audioMonitorId = requestAnimationFrame(check);
-  };
-  audioMonitorId = requestAnimationFrame(check);
-}
-
-async function startOneRecording({ onResult, maxMs, silenceMs, threshold, minRecordMs }) {
-  const stream = await ensureStream();
-  audioChunks = [];
-  agentRecordMime = getSupportedRecorderMime();
-  mediaRecorder = new MediaRecorder(stream, { mimeType: agentRecordMime });
-  return new Promise((resolve, reject) => {
-    mediaRecorder.ondataavailable = (event) => {
+  agentRecordingChunks = [];
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    agentRecordMime = getSupportedRecorderMime();
+    agentRecorder = new MediaRecorder(stream, { mimeType: agentRecordMime });
+    agentRecorder.ondataavailable = (event) => {
       if (event.data && event.data.size > 0) {
-        audioChunks.push(event.data);
+        agentRecordingChunks.push(event.data);
       }
     };
-    mediaRecorder.onerror = () => {
-      stopAudioMonitor();
-      reject(new Error("Recorder error"));
+    agentRecorder.onerror = () => {
+      stream.getTracks().forEach((track) => track.stop());
+      cleanupAgentAudioMonitor();
+      agentRecording = false;
+      setAgentStatus("Mic error.");
+      resumeWakeListening();
     };
-    mediaRecorder.onstop = async () => {
-      stopAudioMonitor();
-      try {
-        const blob = new Blob(audioChunks, { type: agentRecordMime });
-        const base64 = await blobToBase64(blob);
-        await onResult(base64, blob.type);
-        resolve();
-      } catch (err) {
-        reject(err);
-      }
+    agentRecorder.onstop = async () => {
+      stream.getTracks().forEach((track) => track.stop());
+      cleanupAgentAudioMonitor();
+      agentRecording = false;
+      const blob = new Blob(agentRecordingChunks, { type: agentRecordMime });
+      const base64 = await blobToBase64(blob);
+      await transcribeAgentAudio(base64, blob.type, input);
     };
-    mediaRecorder.start(500);
-    startAudioMonitor(
-      stream,
-      maxMs,
-      silenceMs,
-      threshold,
-      minRecordMs,
-      () => {
-        if (mediaRecorder && mediaRecorder.state === "recording") {
-          mediaRecorder.stop();
-        }
-      }
-    );
-  });
+    agentRecorder.start(1000);
+    agentRecording = true;
+    micBtn.classList.add("active");
+    micBtn.textContent = agentAlwaysListen ? "Listening" : "Stop";
+    const wakeBtn = document.getElementById("agent-wake");
+    if (wakeBtn) {
+      wakeBtn.classList.toggle("active", agentAlwaysListen);
+      wakeBtn.textContent = agentAlwaysListen ? "Wake On" : "Wake";
+    }
+    setAgentStatus(agentAlwaysListen ? "Listening for 'hey vista'..." : "Recording...");
+    startAgentAudioMonitor(stream);
+    if (agentAlwaysListen) {
+      ensureWakeWatchdog();
+    }
+  } catch (err) {
+    agentRecording = false;
+    setAgentStatus("Mic error: " + err.message);
+    resumeWakeListening();
+  }
 }
 
-function stopCurrentRecording() {
-  stopAudioMonitor();
-  if (mediaRecorder && mediaRecorder.state === "recording") {
-    mediaRecorder.stop();
+function stopAgentRecording() {
+  if (!agentRecorder || !agentRecording) return;
+  agentAlwaysListen = false;
+  agentExpectCommand = false;
+  if (agentRecordTimer) {
+    clearTimeout(agentRecordTimer);
+    agentRecordTimer = null;
   }
+  if (agentRestartTimer) {
+    clearTimeout(agentRestartTimer);
+    agentRestartTimer = null;
+  }
+  if (agentCommandTimer) {
+    clearTimeout(agentCommandTimer);
+    agentCommandTimer = null;
+  }
+  clearWakeWatchdog();
+  agentRecorder.stop();
+  agentRecording = false;
+  cleanupAgentAudioMonitor();
+  const micBtn = document.getElementById("agent-mic");
+  if (micBtn) {
+    micBtn.classList.remove("active");
+    micBtn.textContent = "Mic";
+  }
+  const wakeBtn = document.getElementById("agent-wake");
+  if (wakeBtn) {
+    wakeBtn.classList.remove("active");
+    wakeBtn.textContent = "Wake";
+  }
+  setAgentStatus("Transcribing...");
+}
+
+function restoreWakeButton() {
+  const wakeBtn = document.getElementById("agent-wake");
+  if (wakeBtn) {
+    wakeBtn.classList.toggle("active", agentAlwaysListen);
+    wakeBtn.textContent = agentAlwaysListen ? "Wake On" : "Wake";
+  }
+}
+
+function startCommandCapture() {
+  if (!agentAlwaysListen) return;
+  agentExpectCommand = true;
+  setAgentStatus("Heard. Say your command...");
+  restoreWakeButton();
+  if (agentRecording || agentRestartLock) return;
+  if (agentCommandTimer) return;
+  agentCommandTimer = setTimeout(() => {
+    agentCommandTimer = null;
+    startAgentRecording(
+      document.getElementById("agent-input"),
+      document.getElementById("agent-mic"),
+      { continuous: false, preserveAlwaysListen: true, commandOnly: true }
+    );
+  }, 200);
+}
+
+function ensureWakeWatchdog() {
+  if (agentWakeWatchdog) return;
+  agentWakeWatchdog = setInterval(() => {
+    if (!agentAlwaysListen || agentRecording || agentRestartLock || agentExpectCommand) return;
+    scheduleWakeRestart();
+  }, 2000);
+}
+
+function clearWakeWatchdog() {
+  if (!agentWakeWatchdog) return;
+  clearInterval(agentWakeWatchdog);
+  agentWakeWatchdog = null;
+}
+
+function scheduleWakeRestart(input = document.getElementById("agent-input"), micBtn = document.getElementById("agent-mic")) {
+  if (!agentAlwaysListen || agentRecording || agentRestartLock || agentExpectCommand) return;
+  if (agentRestartTimer) return;
+  agentRestartLock = true;
+  agentRestartTimer = setTimeout(() => {
+    agentRestartTimer = null;
+    agentRestartLock = false;
+    agentListenCooldown = false;
+    if (agentAlwaysListen && !agentRecording) {
+      startAgentRecording(input, micBtn, { continuous: true });
+    }
+  }, 600);
+}
+
+function resumeWakeListening() {
+  if (!agentAlwaysListen) return;
+  agentExpectCommand = false;
+  if (agentCommandTimer) {
+    clearTimeout(agentCommandTimer);
+    agentCommandTimer = null;
+  }
+  setAgentStatus("Listening for 'hey vista'...");
+  restoreWakeButton();
+  ensureWakeWatchdog();
+  scheduleWakeRestart();
 }
 
 function getVoiceMaxMs() {
@@ -2780,143 +2367,71 @@ function getVoiceMaxMs() {
   return Number.isFinite(value) ? value : 12000;
 }
 
-async function transcribe(base64, mime) {
-  const res = await fetch(`${API_BASE}/api/transcribe`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ audio: base64, mime })
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Transcription failed");
-  return data.text || "";
-}
-
-async function startManualRecording() {
-  if (listenState !== STATE.IDLE) return;
-  transition(STATE.RECORDING);
-  try {
-    await startOneRecording({
-      maxMs: getVoiceMaxMs(),
-      silenceMs: 2400,
-      threshold: 0.005,
-      minRecordMs: 900,
-      onResult: async (base64, mime) => {
-        transition(STATE.PROCESSING);
-        try {
-          const text = await transcribe(base64, mime);
-          if (text && !isTrivialTranscript(text)) {
-            const input = document.getElementById("agent-input");
-            if (input) input.value = text;
-          }
-        } catch (err) {
-          setAgentStatus(`Transcription failed: ${err.message}`);
-        } finally {
-          transition(STATE.IDLE);
-          releaseStream();
-        }
-      }
-    });
-  } catch (err) {
-    setAgentStatus(`Mic error: ${err.message}`);
-    transition(STATE.IDLE);
-    releaseStream();
+function cleanupAgentAudioMonitor() {
+  if (agentSilenceCheckId) {
+    cancelAnimationFrame(agentSilenceCheckId);
+    agentSilenceCheckId = null;
+  }
+  agentSilenceStart = null;
+  agentRecordStart = null;
+  if (agentRecordTimer) {
+    clearTimeout(agentRecordTimer);
+    agentRecordTimer = null;
+  }
+  if (agentAudioContext) {
+    agentAudioContext.close();
+    agentAudioContext = null;
   }
 }
 
-function stopManualRecording() {
-  if (listenState !== STATE.RECORDING || isWakeMode) return;
-  stopCurrentRecording();
-}
-
-async function startWakeListening() {
-  if (listenState !== STATE.IDLE) return;
-  isWakeMode = true;
-  expectCommand = false;
-  transition(STATE.LISTENING);
-  wakeLoop();
-}
-
-function stopWakeListening() {
-  if (listenState === STATE.IDLE) return;
-  isWakeMode = false;
-  expectCommand = false;
-  stopCurrentRecording();
-  releaseStream();
-  transition(STATE.IDLE);
-}
-
-async function wakeLoop() {
-  if (!isWakeMode) return;
-  try {
-    transition(STATE.RECORDING);
-    await startOneRecording({
-      maxMs: getVoiceMaxMs(),
-      silenceMs: 2400,
-      threshold: 0.005,
-      minRecordMs: 900,
-      onResult: async (base64, mime) => {
-        if (!isWakeMode) return;
-        transition(STATE.PROCESSING);
-        try {
-          const text = await transcribe(base64, mime);
-          if (!text || isTrivialTranscript(text)) {
-            transition(STATE.LISTENING);
-            return;
-          }
-          const command = extractWakeCommand(text);
-          if (command === null) {
-            transition(STATE.LISTENING);
-            return;
-          }
-          flashWakeHeard();
-          if (!command) {
-            expectCommand = true;
-            setAgentStatus("Heard. Say your command...");
-            transition(STATE.RECORDING);
-            await startOneRecording({
-              maxMs: getVoiceMaxMs(),
-              silenceMs: 2400,
-              threshold: 0.005,
-              minRecordMs: 900,
-              onResult: async (base64Follow, mimeFollow) => {
-                if (!isWakeMode) return;
-                transition(STATE.PROCESSING);
-                try {
-                  const cmdText = await transcribe(base64Follow, mimeFollow);
-                  if (cmdText && !isTrivialTranscript(cmdText)) {
-                    const input = document.getElementById("agent-input");
-                    if (input) input.value = cmdText;
-                    await sendAgentMessage();
-                  }
-                } catch (err) {
-                  setAgentStatus(`Error: ${err.message}`);
-                } finally {
-                  expectCommand = false;
-                  if (isWakeMode) transition(STATE.LISTENING);
-                }
-              }
-            });
-            return;
-          }
-          const input = document.getElementById("agent-input");
-          if (input) input.value = command;
-          await sendAgentMessage();
-          transition(STATE.LISTENING);
-        } catch (err) {
-          setAgentStatus(`Error: ${err.message}`);
-          transition(STATE.LISTENING);
-        }
-      }
-    });
-  } catch (err) {
-    setAgentStatus(`Mic error: ${err.message}`);
-    transition(STATE.IDLE);
-    releaseStream();
+function startAgentAudioMonitor(stream) {
+  cleanupAgentAudioMonitor();
+  const maxMs = getVoiceMaxMs();
+  const minRecordMs = 900;
+  const silenceMs = 2400;
+  const threshold = 0.005;
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  if (!AudioCtx) {
+    agentRecordTimer = setTimeout(() => {
+      if (agentRecorder && agentRecording) agentRecorder.stop();
+    }, maxMs);
     return;
   }
-  if (isWakeMode && listenState === STATE.LISTENING) {
-    setTimeout(wakeLoop, 100);
-  }
+  agentAudioContext = new AudioCtx();
+  const source = agentAudioContext.createMediaStreamSource(stream);
+  const analyser = agentAudioContext.createAnalyser();
+  analyser.fftSize = 2048;
+  source.connect(analyser);
+  const data = new Uint8Array(analyser.fftSize);
+  agentRecordStart = performance.now();
+
+  const check = () => {
+    if (!agentRecording || !agentRecorder) return;
+    analyser.getByteTimeDomainData(data);
+    let sum = 0;
+    for (let i = 0; i < data.length; i += 1) {
+      const v = (data[i] - 128) / 128;
+      sum += v * v;
+    }
+    const rms = Math.sqrt(sum / data.length);
+    const now = performance.now();
+    const elapsed = now - agentRecordStart;
+    if (rms < threshold) {
+      if (!agentSilenceStart) agentSilenceStart = now;
+      if (elapsed >= minRecordMs && now - agentSilenceStart >= silenceMs) {
+        agentRecorder.stop();
+        return;
+      }
+    } else {
+      agentSilenceStart = null;
+    }
+    if (now - agentRecordStart >= maxMs) {
+      agentRecorder.stop();
+      return;
+    }
+    agentSilenceCheckId = requestAnimationFrame(check);
+  };
+  agentSilenceCheckId = requestAnimationFrame(check);
 }
 
 function blobToBase64(blob) {
@@ -2930,6 +2445,66 @@ function blobToBase64(blob) {
     reader.onerror = reject;
     reader.readAsDataURL(blob);
   });
+}
+
+async function transcribeAgentAudio(base64, mime, input) {
+  try {
+    const res = await fetch(`${API_BASE}/api/transcribe`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ audio: base64, mime })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.error || "Transcription failed");
+    }
+    if (data.text) {
+      if (isTrivialTranscript(data.text)) {
+        if (agentExpectCommand) {
+          agentExpectCommand = false;
+        }
+        setAgentStatus("No speech detected.");
+        return;
+      }
+      if (agentAlwaysListen) {
+        if (agentExpectCommand) {
+          agentExpectCommand = false;
+          input.value = data.text;
+          await sendAgentMessage();
+          return;
+        }
+        const command = extractWakeCommand(data.text);
+        if (command === null) {
+          setAgentStatus("Listening for 'hey vista'...");
+          return;
+        }
+        flashWakeHeard();
+        startCommandCapture();
+        return;
+      } else {
+        input.value = data.text;
+        setAgentStatus("Ready.");
+        return;
+      }
+    } else {
+      if (agentExpectCommand) {
+        agentExpectCommand = false;
+      }
+      setAgentStatus("No speech detected.");
+    }
+  } catch (err) {
+    setAgentStatus(`Mic error: ${err.message}`);
+  } finally {
+    const micBtn = document.getElementById("agent-mic");
+    if (micBtn) {
+      micBtn.classList.remove("active");
+      micBtn.textContent = "Mic";
+    }
+    restoreWakeButton();
+    if (agentAlwaysListen && !agentExpectCommand) {
+      resumeWakeListening();
+    }
+  }
 }
 
 function buildAgentSummary() {
@@ -2980,7 +2555,20 @@ function formatWeatherTime(dt, tz) {
 
 function weatherToQuery(main = "", description = "", isNight = false, city = "") {
   const raw = (description || main || "weather").trim() || "weather";
-  return isNight ? `${raw} night` : raw;
+  const lower = raw.toLowerCase();
+  const isRain =
+    lower.includes("rain") ||
+    lower.includes("drizzle") ||
+    lower.includes("shower") ||
+    lower.includes("storm") ||
+    lower.includes("thunder");
+  if (!isRain) {
+    return isNight ? `${raw} night` : raw;
+  }
+  if (isNight) {
+    return "rainy city night wet street reflections";
+  }
+  return "rainy street wet road rain falling";
 }
 
 function applyWeatherUI(data) {
@@ -3026,7 +2614,6 @@ function setWeatherBackground(url) {
   const layerB = document.getElementById("weather-bg-b");
   if (!layerA || !layerB || !url) return;
 
-  currentWeatherUrl = url;
   const nextLayer = weatherLayerIndex === 0 ? layerB : layerA;
   const currentLayer = weatherLayerIndex === 0 ? layerA : layerB;
 
@@ -3034,7 +2621,6 @@ function setWeatherBackground(url) {
   nextLayer.classList.add("is-active");
   currentLayer.classList.remove("is-active");
   weatherLayerIndex = weatherLayerIndex === 0 ? 1 : 0;
-  updateLikeButtons();
 }
 
 function startWeatherSlideshow(images) {
@@ -3322,8 +2908,7 @@ function restoreHistory(id) {
 }
 
 function buildRemoteUrl(id) {
-  const apiParam = encodeURIComponent(API_BASE);
-  return `${FRONTEND_BASE}/remote.html?session=${encodeURIComponent(id)}&apiBase=${apiParam}`;
+  return `${FRONTEND_BASE}/remote.html?session=${encodeURIComponent(id)}`;
 }
 
 function updateSessionUI(url, code) {
@@ -3560,12 +3145,6 @@ function getImages() {
   return document.querySelectorAll("#gallery img");
 }
 
-function getActiveImage() {
-  const imgs = getImages();
-  if (!imgs.length) return null;
-  return [...imgs].find((img) => img.classList.contains("active")) || imgs[0];
-}
-
 function setGalleryLoader(visible, text) {
   const el = document.getElementById("gallery-loader");
   if (!el) return;
@@ -3583,7 +3162,7 @@ function getLoadLimit() {
 function resetSearchSession(mode, keyword, ratio) {
   searchSessionId += 1;
   const limit = getLoadLimit();
-  const startPage = Math.floor(Math.random() * 5) + 1;
+  const startPage = 1;
   searchState = {
     id: searchSessionId,
     mode,
@@ -3600,7 +3179,7 @@ function resetSearchSession(mode, keyword, ratio) {
     emptyStreak: 0,
     seen: new Set(),
     max: limit,
-    randomize: true
+    randomize: false
   };
 }
 
@@ -3770,7 +3349,6 @@ function setActive(i) {
   slideIndex = i % imgs.length;
   updateCatalogActive(slideIndex);
   updateGallerySource();
-  updateLikeButtons();
 }
 
 function buildCatalog(count) {
@@ -3802,9 +3380,8 @@ function startSlideshow() {
   const imgs = getImages();
   if (!imgs.length) return;
   stopSlideshow();
-  const currentIndex = [...imgs].findIndex((img) => img.classList.contains("active"));
-  slideIndex = currentIndex >= 0 ? currentIndex : 0;
-  setActive(slideIndex);
+  slideIndex = 0;
+  setActive(0);
   slideTimer = setInterval(() => {
     setActive(slideIndex + 1);
   }, slideInterval);
@@ -3977,7 +3554,8 @@ function searchOrGenerate() {
 }
 
 function promptNeedsText(prompt) {
-  return false;
+  const text = String(prompt || "").toLowerCase();
+  return /(?:\btext\b|\bwords?\b|\bcaption\b|\bquote\b|\bslogan\b|\btitle\b|\bheadline\b|\blogo\b|\bsign\b|\bsignage\b|\bposter\b|\blabel\b|\bbrand\b|\bwrite\b|文字|字体|字样|标语|标题|海报|招牌|水印)/i.test(text);
 }
 
 function mapOpenAiSize(aspectRatio) {
@@ -4077,7 +3655,6 @@ initAgentBubble();
 initAgentVoice();
 initInfiniteSearch();
 initGalleryInteractions();
-initLikes();
 resetAgentLog();
 updateGalleryActive();
 setInterval(refreshWeather, WEATHER_TTL);
@@ -4115,9 +3692,6 @@ function initSearchDockDrag() {
     } catch (err) {
       // ignore stored position errors
     }
-  } else {
-    drag.x = window.innerWidth - bubble.offsetWidth - 24;
-    drag.y = window.innerHeight - bubble.offsetHeight - 24;
   }
   applyPosition(drag.x, drag.y);
 
@@ -4456,6 +4030,9 @@ async function sendAgentMessage() {
   } finally {
     if (button) button.disabled = false;
     hidePresenterActivity();
+    if (agentAlwaysListen) {
+      resumeWakeListening();
+    }
   }
 }
 
@@ -4480,16 +4057,6 @@ function buildAgentAck(tool) {
   if (t === "refine_image") return "Refine done. Gallery updated.";
   if (t === "refresh_weather") return "Weather refreshed.";
   if (t === "set_view") return "View updated.";
-  if (t === "play_slideshow") return "Playback started.";
-  if (t === "pause_slideshow") return "Playback paused.";
-  if (t === "next_image") return "Next image.";
-  if (t === "prev_image") return "Previous image.";
-  if (t === "download_image") return "Download started.";
-  if (t === "toggle_fit") return "Fit toggled.";
-  if (t === "open_liked") return "Liked opened.";
-  if (t === "close_liked") return "Liked closed.";
-  if (t === "open_settings") return "Settings opened.";
-  if (t === "close_settings") return "Settings closed.";
   return "Done.";
 }
 
@@ -4512,6 +4079,7 @@ function applyAgentResult(tool, result, args, fallbackText) {
     buildCatalog(images.length);
     setStatus(`Loaded ${images.length} images.`);
     addHistory(result.source || "unsplash", keyword, images);
+    resumeWakeListening();
   }
 
   if (tool === "generate_ai") {
@@ -4528,6 +4096,7 @@ function applyAgentResult(tool, result, args, fallbackText) {
     buildCatalog(images.length);
     setStatus(`Generated ${images.length} images.`);
     addHistory("flux", keyword, images);
+    resumeWakeListening();
   }
 
   if (tool === "refine_image") {
@@ -4544,6 +4113,7 @@ function applyAgentResult(tool, result, args, fallbackText) {
     lastRefinedUrl = image;
     updateHistoryForRefine(image);
     updateRefineStatus("Refine complete.");
+    resumeWakeListening();
   }
 
   if (tool === "set_view") {
@@ -4552,47 +4122,6 @@ function applyAgentResult(tool, result, args, fallbackText) {
 
   if (tool === "refresh_weather") {
     refreshWeather();
-  }
-
-  if (tool === "play_slideshow") {
-    startSlideshow();
-  }
-
-  if (tool === "pause_slideshow") {
-    stopSlideshow();
-  }
-
-  if (tool === "next_image") {
-    setActive(slideIndex + 1);
-  }
-
-  if (tool === "prev_image") {
-    setActive(slideIndex - 1);
-  }
-
-  if (tool === "download_image") {
-    downloadCurrent();
-  }
-
-  if (tool === "toggle_fit") {
-    const fitSelect = document.getElementById("fit-select");
-    const next = fitSelect && fitSelect.value === "cover" ? "contain" : "cover";
-    if (fitSelect) fitSelect.value = next;
-    localStorage.setItem("vista_fit_mode", next);
-    applyFitMode(next);
-  }
-
-  if (tool === "open_liked" || tool === "close_liked") {
-    const panel = document.getElementById("liked-panel");
-    if (panel) panel.classList.toggle("open", tool === "open_liked");
-  }
-
-  if (tool === "open_settings") {
-    setSidebarCollapsed(false);
-  }
-
-  if (tool === "close_settings") {
-    setSidebarCollapsed(true);
   }
 }
 
@@ -4614,7 +4143,6 @@ function setViewMode(mode) {
   const showApp = mode !== "weather";
   if (weatherView) weatherView.classList.remove("view-hidden");
   if (appView) appView.classList.toggle("view-hidden", !showApp);
-  document.body.dataset.view = showApp ? "app" : "weather";
   localStorage.setItem("vista_view_mode", mode);
 }
 
@@ -4632,37 +4160,12 @@ function setSidebarCollapsed(collapsed) {
 
 function initSidebarToggle() {
   const btn = document.getElementById("sidebar-toggle");
-  const side = document.querySelector(".app-side");
   if (!btn) return;
   const saved = localStorage.getItem("vista_sidebar_collapsed") === "1";
   setSidebarCollapsed(saved);
-  let sideCloseTimer = null;
-  const openSide = () => {
-    if (sideCloseTimer) {
-      clearTimeout(sideCloseTimer);
-      sideCloseTimer = null;
-    }
-    setSidebarCollapsed(false);
-  };
-  const closeSide = () => {
-    if (sideCloseTimer) clearTimeout(sideCloseTimer);
-    sideCloseTimer = setTimeout(() => {
-      setSidebarCollapsed(true);
-    }, 120);
-  };
   btn.addEventListener("click", () => {
     const isCollapsed = document.body.classList.contains("sidebar-collapsed");
     setSidebarCollapsed(!isCollapsed);
-  });
-  if (side) {
-    side.addEventListener("mouseenter", openSide);
-    side.addEventListener("mouseleave", closeSide);
-  }
-  document.addEventListener("pointerdown", (event) => {
-    if (document.body.classList.contains("sidebar-collapsed")) return;
-    if (side && side.contains(event.target)) return;
-    if (btn.contains(event.target)) return;
-    closeSide();
   });
 }
 
@@ -4676,6 +4179,7 @@ function initAgentBubble() {
   if (!fab || !bubble) return;
 
   const POS_KEY = "vista_agent_pos_v1";
+  const canHover = window.matchMedia && window.matchMedia("(hover: hover) and (pointer: fine)").matches;
   let drag = { active: false, moved: false, startX: 0, startY: 0, x: 0, y: 0 };
 
   function clamp(value, min, max) {
@@ -4685,26 +4189,48 @@ function initAgentBubble() {
   function applyPosition(x, y) {
     const maxX = window.innerWidth - bubble.offsetWidth - 16;
     const maxY = window.innerHeight - bubble.offsetHeight - 16;
-    const nextX = clamp(x, 16, Math.max(16, maxX));
-    const nextY = clamp(y, 16, Math.max(16, maxY));
+    const nextX = clamp(x, 16, maxX);
+    const nextY = clamp(y, 16, maxY);
     fab.style.transform = `translate3d(${nextX}px, ${nextY}px, 0)`;
     drag.x = nextX;
     drag.y = nextY;
+  }
+
+  function snap() {
+    const maxX = window.innerWidth - bubble.offsetWidth - 16;
+    const toLeft = drag.x < window.innerWidth / 2;
+    const nextX = toLeft ? 16 : maxX;
+    applyPosition(nextX, drag.y);
+    fab.classList.toggle("left", toLeft);
+    fab.classList.toggle("right", !toLeft);
+    localStorage.setItem(POS_KEY, JSON.stringify({ x: nextX, y: drag.y }));
   }
 
   const stored = localStorage.getItem(POS_KEY);
   if (stored) {
     try {
       const pos = JSON.parse(stored);
-      if (Number.isFinite(pos.x) && Number.isFinite(pos.y)) {
-        drag.x = pos.x;
-        drag.y = pos.y;
+      if (!Number.isFinite(pos.x) || !Number.isFinite(pos.y)) {
+        throw new Error("Invalid stored position");
+      }
+      applyPosition(pos.x, pos.y);
+      fab.classList.toggle("left", pos.x < window.innerWidth / 2);
+      fab.classList.toggle("right", pos.x >= window.innerWidth / 2);
+      const rect = fab.getBoundingClientRect();
+      const outOfView = rect.right < 0 || rect.left > window.innerWidth || rect.bottom < 0 || rect.top > window.innerHeight;
+      if (outOfView) {
+        localStorage.removeItem(POS_KEY);
+        applyPosition(0, 0);
+        snap();
       }
     } catch (err) {
-      // ignore stored position errors
+      applyPosition(0, 0);
+      snap();
     }
+  } else {
+    applyPosition(0, 0);
+    snap();
   }
-  applyPosition(drag.x, drag.y);
 
   bubble.addEventListener("pointerdown", (e) => {
     drag.active = true;
@@ -4730,11 +4256,24 @@ function initAgentBubble() {
     drag.active = false;
     bubble.releasePointerCapture(e.pointerId);
     fab.classList.remove("dragging");
-    localStorage.setItem(POS_KEY, JSON.stringify({ x: drag.x, y: drag.y }));
+    snap();
+    if (!drag.moved && e.pointerType === "touch") {
+      fab.classList.toggle("open");
+    }
   });
+
+  if (canHover) {
+    fab.addEventListener("mouseenter", () => {
+      if (!drag.active) fab.classList.add("open");
+    });
+    fab.addEventListener("mouseleave", () => {
+      if (!drag.active) fab.classList.remove("open");
+    });
+  }
 
   window.addEventListener("resize", () => {
     applyPosition(drag.x, drag.y);
+    snap();
   });
 }
 
